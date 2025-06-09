@@ -25,7 +25,6 @@
         h2, h3 {
             text-align: center;
         }
-        /* --- Estilos dos Modais e Overlays --- */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -62,7 +61,6 @@
         .close-modal-button:hover {
             color: white;
         }
-
         #countdown-container {
             color: #E6EDF3;
             background-color: #161B22;
@@ -128,13 +126,6 @@
         #saveButton {
             background: linear-gradient(90deg, #28a745, #20c997);
         }
-        #viewCurrentButton {
-            background: linear-gradient(90deg, #56ab2f, #a8e063);
-        }
-        #clearHistoryButton {
-            background: linear-gradient(90deg, #dc3545, #fd7e14);
-        }
-        /* --- Estilo do Botão Flutuante --- */
         #showHistoryModalButton {
             position: fixed;
             bottom: 30px;
@@ -151,7 +142,24 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             z-index: 990;
         }
-        /* --- Estilos da Tabela --- */
+        /* --- Estilos dos Botões do Histórico --- */
+        #historyModal button {
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+        #viewCurrentButton {
+            background: linear-gradient(90deg, #56ab2f, #a8e063);
+        }
+        #editDateButton {
+            background: linear-gradient(90deg, #ffc107, #ff9800);
+        }
+        #deleteWeekButton {
+            background: linear-gradient(90deg, #ff7e5f, #feb47b);
+        }
+        #clearHistoryButton {
+            background: linear-gradient(90deg, #dc3545, #fd7e14);
+        }
+        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -192,7 +200,6 @@
             text-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
         }
 
-        /* --- Estilos Responsivos --- */
         @media screen and (max-width: 768px) {
             body { padding: 10px; }
             h1 { font-size: 1.8em; }
@@ -254,18 +261,18 @@
     </div>
 
     <div id="actions">
-        <p>Após gerar a tabela, salve-a no histórico online para que sirva como base de comparação futura.</p>
+        <p>Após gerar uma nova tabela, salve-a no histórico online para o futuro.</p>
         <button id="saveButton" disabled>Adicionar Semana ao Histórico</button>
     </div>
 
     <div id="result-container">
         <h2 id="resultTitle">Tabela de Resultados</h2>
         <div id="tableOutput">
-            <p>Clique em "Inserir / Atualizar Dados" para começar.</p>
+            <p>Carregando dados mais recentes...</p>
         </div>
     </div>
     
-    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">🗓️</button>
+    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">📜</button>
 
     <div id="inputModalOverlay" class="modal-overlay"></div>
     <div id="controls" class="modal-container">
@@ -281,11 +288,14 @@
     <div id="historyModal" class="modal-container">
         <span id="closeHistoryModalButton" class="close-modal-button">&times;</span>
         <h2>Histórico de Semanas</h2>
-        <p>Selecione uma semana do arquivo para visualizá-la ou volte para a análise atual.</p>
+        <p>Selecione uma semana para gerenciar.</p>
         <select id="weekSelector"></select>
-        <button id="viewHistoryButton" disabled>Visualizar Semana Selecionada</button>
-        <button id="viewCurrentButton" disabled>Visualizar Semana Atual</button>
-        <button id="clearHistoryButton" disabled>Limpar Histórico Online</button>
+        <button id="viewHistoryButton" disabled>Visualizar Semana</button>
+        <button id="editDateButton" disabled>Editar Data</button>
+        <button id="deleteWeekButton" disabled>Excluir Semana</button>
+        <hr style="border-color: #30363D; margin: 20px 0;">
+        <button id="viewCurrentButton" disabled>Voltar à Semana Atual</button>
+        <button id="clearHistoryButton" disabled>Limpar Todo o Histórico</button>
     </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -329,6 +339,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const weekSelector = document.getElementById('weekSelector');
     const viewHistoryButton = document.getElementById('viewHistoryButton');
+    const editDateButton = document.getElementById('editDateButton');
+    const deleteWeekButton = document.getElementById('deleteWeekButton');
     const viewCurrentButton = document.getElementById('viewCurrentButton');
     const clearHistoryButton = document.getElementById('clearHistoryButton');
     
@@ -395,7 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- LÓGICA DO HISTÓRICO (Dentro do Modal) ---
+    // --- LÓGICA DO HISTÓRICO ---
     viewHistoryButton.addEventListener('click', async () => {
         const selectedIndex = weekSelector.value;
         if (selectedIndex === null || selectedIndex === '') return;
@@ -407,10 +419,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeHistoryModal();
     });
 
+    editDateButton.addEventListener('click', async () => {
+        const selectedIndex = weekSelector.value;
+        if (selectedIndex === null || selectedIndex === '') return;
+        const history = await getHistory();
+        const currentWeek = history.weeks[selectedIndex];
+        const newDate = prompt(`Digite a nova data para a semana de "${currentWeek.date}" (DD/MM/AAAA):`, currentWeek.date);
+        if (newDate === null || newDate.trim() === '') return;
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) return alert("Formato de data inválido. Use DD/MM/AAAA.");
+        history.weeks[selectedIndex].date = newDate;
+        try {
+            await historyDocRef.set(history);
+            alert("Data atualizada com sucesso!");
+            await populateHistoryDropdown();
+            weekSelector.value = selectedIndex;
+        } catch (error) {
+            console.error("Erro ao editar data: ", error);
+            alert("Ocorreu um erro ao editar a data.");
+        }
+    });
+
+    deleteWeekButton.addEventListener('click', async () => {
+        const selectedIndex = weekSelector.value;
+        if (selectedIndex === null || selectedIndex === '') return;
+
+        if (confirm('Tem certeza que deseja EXCLUIR a semana selecionada do histórico?')) {
+            const history = await getHistory();
+            history.weeks.splice(selectedIndex, 1); // Remove o item do array
+            try {
+                await historyDocRef.set(history);
+                alert("Semana excluída com sucesso.");
+                await populateHistoryDropdown();
+                await loadLatestComparison(); // Recarrega a visualização principal
+            } catch (error) {
+                console.error("Erro ao excluir semana: ", error);
+                alert("Ocorreu um erro ao excluir a semana.");
+            }
+        }
+    });
+
     viewCurrentButton.addEventListener('click', () => {
-        if (currentPlayersData.length === 0) return alert('Nenhuma tabela da semana atual foi gerada ainda.');
-        const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: false });
-        resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
+        if (currentPlayersData.length === 0) return alert('Nenhuma tabela da semana atual foi carregada ou gerada ainda.');
+        const isComparative = currentPlayersData[0].hasOwnProperty('previousTotal');
+        const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: !isComparative });
+        resultTitle.textContent = 'Análise da Semana Mais Recente';
         tableOutputDiv.innerHTML = tableHTML;
         closeHistoryModal();
     });
@@ -433,6 +485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function populateHistoryDropdown() {
         const history = await getHistory();
         weekSelector.innerHTML = '';
+        const buttonsToToggle = [viewHistoryButton, editDateButton, deleteWeekButton, clearHistoryButton];
         if (history.weeks.length > 0) {
             history.weeks.forEach((week, index) => {
                 const option = document.createElement('option');
@@ -440,14 +493,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 option.textContent = `Semana de ${week.date} (${week.data.length} jogadores)`;
                 weekSelector.appendChild(option);
             });
-            viewHistoryButton.disabled = false;
-            clearHistoryButton.disabled = false;
+            buttonsToToggle.forEach(btn => btn.disabled = false);
         } else {
             const option = document.createElement('option');
             option.textContent = 'Nenhuma semana salva';
             weekSelector.appendChild(option);
-            viewHistoryButton.disabled = true;
-            clearHistoryButton.disabled = true;
+            buttonsToToggle.forEach(btn => btn.disabled = true);
         }
     }
 
@@ -462,7 +513,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // --- LÓGICA DO CRONÔMETRO ---
     function updateCountdown() {
         const now = new Date();
         const targetDay = 2;
@@ -482,7 +532,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         countdownTimer.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
     
-    // --- FUNÇÕES DE PROCESSAMENTO E GERAÇÃO ---
     function comparePlayerData(currentData, previousData) {
         const previousDataMap = new Map(previousData.map(p => [p.jogador, p]));
         return currentData.map(player => {
@@ -565,10 +614,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         return html;
     }
 
-    // Inicializa a página
-    populateHistoryDropdown();
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
+    async function initializePage() {
+        await populateHistoryDropdown();
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+        await loadLatestComparison();
+    }
+    
+    async function loadLatestComparison() {
+        const history = await getHistory();
+        if (history.weeks.length === 0) {
+            tableOutputDiv.innerHTML = '<p>Nenhum histórico encontrado. Insira os dados da primeira semana para começar.</p>';
+            return;
+        }
+
+        let isComparative = false;
+        if (history.weeks.length >= 2) {
+            const latestWeekData = history.weeks[history.weeks.length - 1].data;
+            const previousWeekData = history.weeks[history.weeks.length - 2].data;
+            currentPlayersData = comparePlayerData(latestWeekData, previousWeekData);
+            isComparative = true;
+            resultTitle.textContent = 'Análise da Semana Mais Recente';
+        } else {
+            currentPlayersData = history.weeks[0].data;
+            resultTitle.textContent = `Visualizando a Única Semana Salva (${history.weeks[0].date})`;
+        }
+        
+        const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: !isComparative });
+        tableOutputDiv.innerHTML = tableHTML;
+        viewCurrentButton.disabled = false;
+    }
+
+    initializePage();
 });
 </script>
 
