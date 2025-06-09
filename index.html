@@ -21,11 +21,9 @@
             color: #f0b90b;
             font-weight: 700;
         }
-        /* Centraliza os títulos das seções */
         h2 {
             text-align: center;
         }
-        /* Estilos do Modal e Overlay */
         #modalOverlay {
             display: none;
             position: fixed;
@@ -36,7 +34,7 @@
             background-color: rgba(0, 0, 0, 0.7);
             z-index: 999;
         }
-        #controls { /* Agora é o nosso modal */
+        #controls {
             display: none;
             position: fixed;
             top: 50%;
@@ -121,7 +119,6 @@
         #saveButton {
             background: linear-gradient(90deg, #28a745, #20c997);
         }
-        /* Nova cor para o botão de visualizar semana atual */
         #viewCurrentButton {
             background: linear-gradient(90deg, #56ab2f, #a8e063);
         }
@@ -195,7 +192,7 @@
     </div>
     
     <div id="actions">
-        <p>Após gerar a tabela, salve-a no histórico para que sirva como base de comparação futura.</p>
+        <p>Após gerar a tabela, salve-a no histórico online para que sirva como base de comparação futura.</p>
         <button id="saveButton" disabled>Adicionar Semana ao Histórico</button>
     </div>
 
@@ -212,11 +209,32 @@
         <select id="weekSelector"></select>
         <button id="viewHistoryButton" disabled>Visualizar Semana Selecionada</button>
         <button id="viewCurrentButton" disabled>Visualizar Semana Atual</button>
-        <button id="clearHistoryButton" disabled>Limpar Histórico</button>
+        <button id="clearHistoryButton" disabled>Limpar Histórico Online</button>
     </div>
     
+    <!-- Scripts do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    
+    // --- CONFIGURAÇÃO DO FIREBASE (Sua Configuração) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAxFwYdzni3SVOerZAO-ELRyDGFSoRGlLU",
+      authDomain: "marvelsnap-e6bb0.firebaseapp.com",
+      projectId: "marvelsnap-e6bb0",
+      storageBucket: "marvelsnap-e6bb0.appspot.com",
+      messagingSenderId: "679376113892",
+      appId: "1:679376113892:web:b71a52627e05d7ef961cf1",
+      measurementId: "G-NW3DNL02VW"
+    };
+
+    // Inicializa o Firebase e o Firestore
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const historyDocRef = db.collection("clanData").doc("history");
+
     // --- Seleção de Elementos ---
     const showInputModalButton = document.getElementById('showInputModalButton');
     const modalOverlay = document.getElementById('modalOverlay');
@@ -251,13 +269,12 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalButton.addEventListener('click', closeModal);
     modalOverlay.addEventListener('click', closeModal);
 
-
     // --- LÓGICA PRINCIPAL ---
-    processButton.addEventListener('click', () => {
+    processButton.addEventListener('click', async () => {
         const combinedText = textInput1.value + '\n' + textInput2.value;
         if (combinedText.trim() === '') return alert('Por favor, cole o texto de pelo menos uma imagem.');
         
-        const history = getHistory();
+        const history = await getHistory();
         const previousData = history.weeks.length > 0 ? history.weeks[history.weeks.length - 1].data : [];
         
         const parsedPlayers = parseOcrText(combinedText);
@@ -272,25 +289,30 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal();
     });
     
-    saveButton.addEventListener('click', () => {
-        if (currentPlayersData.length === 0) {
-            return alert('Não há dados para salvar. Gere uma tabela primeiro.');
-        }
-        if (confirm('Deseja salvar os dados da tabela atual no histórico?')) {
-            const history = getHistory();
+    saveButton.addEventListener('click', async () => {
+        if (currentPlayersData.length === 0) return alert('Não há dados para salvar. Gere uma tabela primeiro.');
+
+        if (confirm('Deseja salvar os dados no histórico online para todo o clã?')) {
+            const history = await getHistory();
             const today = new Date().toLocaleDateString('pt-br', {day: '2-digit', month: '2-digit', year: 'numeric'});
             history.weeks.push({ date: today, data: currentPlayersData });
-            localStorage.setItem('snapClanHistory', JSON.stringify(history));
-            alert(`Dados da semana de ${today} salvos com sucesso!`);
-            populateHistoryDropdown();
+            
+            try {
+                await historyDocRef.set(history);
+                alert(`Dados da semana de ${today} salvos com sucesso!`);
+                await populateHistoryDropdown();
+            } catch (error) {
+                console.error("Erro ao salvar no Firestore: ", error);
+                alert("Ocorreu um erro ao salvar os dados.");
+            }
         }
     });
 
     // --- LÓGICA DO HISTÓRICO ---
-    viewHistoryButton.addEventListener('click', () => {
+    viewHistoryButton.addEventListener('click', async () => {
         const selectedIndex = weekSelector.value;
         if (selectedIndex === null || selectedIndex === '') return;
-        const history = getHistory();
+        const history = await getHistory();
         const selectedWeek = history.weeks[selectedIndex];
         const tableHTML = generateTableHTML(selectedWeek.data, { isHistoric: true });
         resultTitle.textContent = `Visualizando Semana de ${selectedWeek.date}`;
@@ -299,25 +321,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     viewCurrentButton.addEventListener('click', () => {
         if (currentPlayersData.length === 0) {
-            return alert('Nenhuma tabela da semana atual foi gerada ainda. Use o botão "Inserir Dados" primeiro.');
+            return alert('Nenhuma tabela da semana atual foi gerada ainda.');
         }
         const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: false });
         resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
         tableOutputDiv.innerHTML = tableHTML;
     });
 
-    clearHistoryButton.addEventListener('click', () => {
-        if (confirm('Tem certeza que deseja apagar TODO o histórico de semanas? Esta ação não pode ser desfeita.')) {
-            localStorage.removeItem('snapClanHistory');
-            alert('Histórico apagado.');
-            populateHistoryDropdown();
-            tableOutputDiv.innerHTML = '<p>Histórico limpo. Gere uma nova tabela para começar.</p>';
-            resultTitle.textContent = 'Tabela de Resultados';
+    clearHistoryButton.addEventListener('click', async () => {
+        if (confirm('Tem certeza que deseja apagar TODO o histórico online? Esta ação não pode ser desfeita.')) {
+            try {
+                await historyDocRef.set({ weeks: [] });
+                alert('Histórico online apagado.');
+                await populateHistoryDropdown();
+                tableOutputDiv.innerHTML = '<p>Histórico limpo. Gere uma nova tabela para começar.</p>';
+                resultTitle.textContent = 'Tabela de Resultados';
+            } catch (error) {
+                console.error("Erro ao limpar histórico: ", error);
+                alert("Ocorreu um erro ao limpar o histórico online.");
+            }
         }
     });
 
-    function populateHistoryDropdown() {
-        const history = getHistory();
+    async function populateHistoryDropdown() {
+        const history = await getHistory();
         weekSelector.innerHTML = '';
         if (history.weeks.length > 0) {
             history.weeks.forEach((week, index) => {
@@ -337,8 +364,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function getHistory() {
-        return JSON.parse(localStorage.getItem('snapClanHistory') || '{"weeks": []}');
+    async function getHistory() {
+        try {
+            const doc = await historyDocRef.get();
+            return doc.exists ? doc.data() : { weeks: [] };
+        } catch (error) {
+            console.error("Erro ao buscar histórico: ", error);
+            alert("Não foi possível carregar os dados do histórico online.");
+            return { weeks: [] };
+        }
     }
     
     // --- LÓGICA DO CRONÔMETRO ---
@@ -441,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Inicializa a página
-    populateHistoryDropdown();
+    await populateHistoryDropdown();
     updateCountdown();
     setInterval(updateCountdown, 1000);
 });
