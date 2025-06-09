@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Tabela com Histórico - Marvel Snap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background-color: #0D1117;
+            color: #E6EDF3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #f0b90b;
+            font-weight: 700;
+        }
+        /* Centraliza os títulos das seções */
+        h2 {
+            text-align: center;
+        }
+        /* Estilos do Modal e Overlay */
+        #modalOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+        #controls { /* Agora é o nosso modal */
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            width: 90%;
+            max-width: 600px;
+        }
+        #closeModalButton {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 2.5em;
+            color: #aaa;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #closeModalButton:hover {
+            color: white;
+        }
+        #countdown-container {
+            color: #E6EDF3;
+            background-color: #161B22;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #30363D;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+        #countdownTimer {
+            color: #00E5FF;
+            font-weight: 700;
+        }
+        #main-action-container, #result-container, #actions, #history-container {
+            background-color: #161B22;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            width: 80%;
+            max-width: 800px;
+            border: 1px solid #30363D;
+        }
+        textarea, select {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 45px;
+            background-color: #0D1117;
+            color: #E6EDF3;
+            border: 1px solid #30363D;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        textarea {
+             min-height: 150px;
+        }
+        button {
+            padding: 12px 20px;
+            background: linear-gradient(90deg, #007BFF, #00BFFF);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 700;
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s ease;
+        }
+        button:hover {
+            transform: scale(1.02);
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #saveButton {
+            background: linear-gradient(90deg, #28a745, #20c997);
+        }
+        /* Nova cor para o botão de visualizar semana atual */
+        #viewCurrentButton {
+            background: linear-gradient(90deg, #56ab2f, #a8e063);
+        }
+        #clearHistoryButton {
+            background: linear-gradient(90deg, #dc3545, #fd7e14);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-spacing: 0;
+        }
+        th, td {
+            padding: 16px 12px;
+            text-align: left;
+            border-bottom: 1px solid #21262D;
+        }
+        th {
+            color: #00E5FF;
+            font-weight: 700;
+            text-align: right;
+        }
+        th:first-child {
+            text-align: left;
+        }
+        td {
+            color: #E6EDF3;
+        }
+        td.player-name {
+            font-weight: 700;
+        }
+        td.numeric-data {
+            color: #00E5FF;
+            text-align: right;
+            font-weight: 700;
+            text-shadow: 0 0 5px rgba(0, 229, 255, 0.4);
+        }
+        td.total-score {
+            cursor: help;
+        }
+        .positive-diff {
+            color: #28a745;
+            text-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+        }
+        .negative-diff {
+            color: #dc3545;
+            text-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Gerador de Dados de Clã (Marvel Snap)</h1>
+    
+    <div id="countdown-container">
+        Próximo reset em: <span id="countdownTimer">Calculando...</span>
+    </div>
+
+    <div id="main-action-container">
+        <button id="showInputModalButton">Inserir / Atualizar Dados da Semana</button>
+    </div>
+
+    <div id="modalOverlay"></div>
+    <div id="controls">
+        <span id="closeModalButton">&times;</span>
+        <h3>Inserir Dados das Imagens</h3>
+        <p>Cole o texto das imagens nos campos abaixo.</p>
+        <textarea id="textInput1" placeholder="Texto da Imagem 1..."></textarea>
+        <textarea id="textInput2" placeholder="Texto da Imagem 2 (opcional)..."></textarea>
+        <button id="processButton">Gerar Tabela Comparativa</button>
+    </div>
+    
+    <div id="actions">
+        <p>Após gerar a tabela, salve-a no histórico para que sirva como base de comparação futura.</p>
+        <button id="saveButton" disabled>Adicionar Semana ao Histórico</button>
+    </div>
+
+    <div id="result-container">
+        <h2 id="resultTitle">Tabela de Resultados</h2>
+        <div id="tableOutput">
+            <p>Clique em "Inserir / Atualizar Dados" para começar.</p>
+        </div>
+    </div>
+    
+    <div id="history-container">
+        <h2>Histórico de Semanas</h2>
+        <p>Selecione uma semana do arquivo para visualizá-la ou volte para a análise atual.</p>
+        <select id="weekSelector"></select>
+        <button id="viewHistoryButton" disabled>Visualizar Semana Selecionada</button>
+        <button id="viewCurrentButton" disabled>Visualizar Semana Atual</button>
+        <button id="clearHistoryButton" disabled>Limpar Histórico</button>
+    </div>
+    
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Seleção de Elementos ---
+    const showInputModalButton = document.getElementById('showInputModalButton');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const controlsModal = document.getElementById('controls');
+    const closeModalButton = document.getElementById('closeModalButton');
+    
+    const processButton = document.getElementById('processButton');
+    const saveButton = document.getElementById('saveButton');
+    const textInput1 = document.getElementById('textInput1');
+    const textInput2 = document.getElementById('textInput2');
+    const tableOutputDiv = document.getElementById('tableOutput');
+    const resultTitle = document.getElementById('resultTitle');
+    const countdownTimer = document.getElementById('countdownTimer');
+    
+    const weekSelector = document.getElementById('weekSelector');
+    const viewHistoryButton = document.getElementById('viewHistoryButton');
+    const viewCurrentButton = document.getElementById('viewCurrentButton');
+    const clearHistoryButton = document.getElementById('clearHistoryButton');
+    
+    let currentPlayersData = [];
+
+    // --- LÓGICA DO MODAL ---
+    function openModal() {
+        modalOverlay.style.display = 'block';
+        controlsModal.style.display = 'block';
+    }
+    function closeModal() {
+        modalOverlay.style.display = 'none';
+        controlsModal.style.display = 'none';
+    }
+    showInputModalButton.addEventListener('click', openModal);
+    closeModalButton.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', closeModal);
+
+
+    // --- LÓGICA PRINCIPAL ---
+    processButton.addEventListener('click', () => {
+        const combinedText = textInput1.value + '\n' + textInput2.value;
+        if (combinedText.trim() === '') return alert('Por favor, cole o texto de pelo menos uma imagem.');
+        
+        const history = getHistory();
+        const previousData = history.weeks.length > 0 ? history.weeks[history.weeks.length - 1].data : [];
+        
+        const parsedPlayers = parseOcrText(combinedText);
+        currentPlayersData = comparePlayerData(parsedPlayers, previousData);
+        
+        const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: false });
+        resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
+        tableOutputDiv.innerHTML = tableHTML;
+        
+        saveButton.disabled = false;
+        viewCurrentButton.disabled = false;
+        closeModal();
+    });
+    
+    saveButton.addEventListener('click', () => {
+        if (currentPlayersData.length === 0) {
+            return alert('Não há dados para salvar. Gere uma tabela primeiro.');
+        }
+        if (confirm('Deseja salvar os dados da tabela atual no histórico?')) {
+            const history = getHistory();
+            const today = new Date().toLocaleDateString('pt-br', {day: '2-digit', month: '2-digit', year: 'numeric'});
+            history.weeks.push({ date: today, data: currentPlayersData });
+            localStorage.setItem('snapClanHistory', JSON.stringify(history));
+            alert(`Dados da semana de ${today} salvos com sucesso!`);
+            populateHistoryDropdown();
+        }
+    });
+
+    // --- LÓGICA DO HISTÓRICO ---
+    viewHistoryButton.addEventListener('click', () => {
+        const selectedIndex = weekSelector.value;
+        if (selectedIndex === null || selectedIndex === '') return;
+        const history = getHistory();
+        const selectedWeek = history.weeks[selectedIndex];
+        const tableHTML = generateTableHTML(selectedWeek.data, { isHistoric: true });
+        resultTitle.textContent = `Visualizando Semana de ${selectedWeek.date}`;
+        tableOutputDiv.innerHTML = tableHTML;
+    });
+
+    viewCurrentButton.addEventListener('click', () => {
+        if (currentPlayersData.length === 0) {
+            return alert('Nenhuma tabela da semana atual foi gerada ainda. Use o botão "Inserir Dados" primeiro.');
+        }
+        const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: false });
+        resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
+        tableOutputDiv.innerHTML = tableHTML;
+    });
+
+    clearHistoryButton.addEventListener('click', () => {
+        if (confirm('Tem certeza que deseja apagar TODO o histórico de semanas? Esta ação não pode ser desfeita.')) {
+            localStorage.removeItem('snapClanHistory');
+            alert('Histórico apagado.');
+            populateHistoryDropdown();
+            tableOutputDiv.innerHTML = '<p>Histórico limpo. Gere uma nova tabela para começar.</p>';
+            resultTitle.textContent = 'Tabela de Resultados';
+        }
+    });
+
+    function populateHistoryDropdown() {
+        const history = getHistory();
+        weekSelector.innerHTML = '';
+        if (history.weeks.length > 0) {
+            history.weeks.forEach((week, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `Semana de ${week.date} (${week.data.length} jogadores)`;
+                weekSelector.appendChild(option);
+            });
+            viewHistoryButton.disabled = false;
+            clearHistoryButton.disabled = false;
+        } else {
+            const option = document.createElement('option');
+            option.textContent = 'Nenhuma semana salva no histórico';
+            weekSelector.appendChild(option);
+            viewHistoryButton.disabled = true;
+            clearHistoryButton.disabled = true;
+        }
+    }
+
+    function getHistory() {
+        return JSON.parse(localStorage.getItem('snapClanHistory') || '{"weeks": []}');
+    }
+    
+    // --- LÓGICA DO CRONÔMETRO ---
+    function updateCountdown() {
+        const now = new Date();
+        const targetDay = 2;
+        const targetHour = 16;
+        let nextResetDate = new Date();
+        nextResetDate.setHours(targetHour, 0, 0, 0);
+        const daysUntilNextTuesday = (targetDay - now.getDay() + 7) % 7;
+        nextResetDate.setDate(now.getDate() + daysUntilNextTuesday);
+        if (daysUntilNextTuesday === 0 && now.getTime() > nextResetDate.getTime()) {
+            nextResetDate.setDate(nextResetDate.getDate() + 7);
+        }
+        const timeRemaining = nextResetDate.getTime() - now.getTime();
+        const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+        countdownTimer.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+    
+    // --- FUNÇÕES DE PROCESSAMENTO E GERAÇÃO ---
+    function comparePlayerData(currentData, previousData) {
+        const previousDataMap = new Map(previousData.map(p => [p.jogador, p]));
+        return currentData.map(player => {
+            const previousPlayer = previousDataMap.get(player.jogador);
+            if (previousPlayer) {
+                player.difference = parseInt(player.total) - parseInt(previousPlayer.total);
+                player.previousTotal = previousPlayer.total;
+            } else {
+                player.difference = 'Novo';
+            }
+            return player;
+        });
+    }
+
+    function parseOcrText(ocrText) {
+        const items = ocrText.replace(/[.,]/g, '').split(/\s+/).filter(item => item.trim() !== '');
+        const playersWithDuplicates = [];
+        let currentPlayer = { jogador: '', numbers: [] };
+        for (const item of items) {
+            if (isNaN(parseInt(item))) {
+                currentPlayer.jogador += ` ${item}`;
+            } else if (currentPlayer.jogador) {
+                currentPlayer.numbers.push(item);
+            }
+            if (currentPlayer.jogador && currentPlayer.numbers.length === 3) {
+                const rawName = currentPlayer.jogador.trim();
+                const cleanedName = rawName.replace(/^[\s⭐*★]+/g, '');
+                playersWithDuplicates.push({
+                    jogador: cleanedName,
+                    cubo: currentPlayer.numbers[0],
+                    tarefas: currentPlayer.numbers[1],
+                    total: parseInt(currentPlayer.numbers[2])
+                });
+                currentPlayer = { jogador: '', numbers: [] };
+            }
+        }
+        const uniquePlayers = [];
+        const seenPlayers = new Map();
+        for (const player of playersWithDuplicates) {
+            if (!seenPlayers.has(player.jogador)) {
+                seenPlayers.set(player.jogador, true);
+                uniquePlayers.push(player);
+            }
+        }
+        return uniquePlayers;
+    }
+
+    function generateTableHTML(playersData, options = {}) {
+        const { isHistoric = false } = options;
+        if (playersData.length === 0) return '<p>Nenhum dado de jogador válido foi encontrado.</p>';
+        playersData.sort((a, b) => b.total - a.total);
+        let html = '<table><thead><tr>';
+        html += '<th>Jogador</th><th>Cubo</th><th>Tarefas</th><th>Total</th>';
+        if (!isHistoric) html += '<th>Diferença</th>';
+        html += '</tr></thead><tbody>';
+        for (const player of playersData) {
+            let totalCellHtml = `<td class="numeric-data">${player.total}</td>`;
+            if (!isHistoric && typeof player.previousTotal === 'number') {
+                totalCellHtml = `<td class="numeric-data total-score" title="Pontuação Anterior: ${player.previousTotal}">${player.total}</td>`;
+            }
+            html += `<tr><td class="player-name">${player.jogador}</td><td class="numeric-data">${player.cubo}</td><td class="numeric-data">${player.tarefas}</td>${totalCellHtml}`;
+            if (!isHistoric) {
+                let diffHtml = '<td class="numeric-data">-</td>';
+                if (player.difference === 'Novo') {
+                    diffHtml = `<td class="numeric-data">${player.difference}</td>`;
+                } else if (typeof player.difference === 'number') {
+                    if (player.difference > 0) diffHtml = `<td class="numeric-data positive-diff">+${player.difference}</td>`;
+                    else if (player.difference < 0) diffHtml = `<td class="numeric-data negative-diff">${player.difference}</td>`;
+                    else diffHtml = `<td class="numeric-data">${player.difference}</td>`;
+                }
+                html += diffHtml;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        return html;
+    }
+
+    // Inicializa a página
+    populateHistoryDropdown();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+});
+</script>
+
+</body>
+</html>
