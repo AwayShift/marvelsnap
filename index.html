@@ -22,10 +22,11 @@
             color: #f0b90b;
             font-weight: 700;
         }
-        h2 {
+        h2, h3 {
             text-align: center;
         }
-        #modalOverlay {
+        /* --- Estilos dos Modais e Overlays --- */
+        .modal-overlay {
             display: none;
             position: fixed;
             top: 0;
@@ -35,7 +36,7 @@
             background-color: rgba(0, 0, 0, 0.7);
             z-index: 999;
         }
-        #controls {
+        .modal-container {
             display: none;
             position: fixed;
             top: 50%;
@@ -44,8 +45,12 @@
             z-index: 1000;
             width: 90%;
             max-width: 600px;
+            background-color: #161B22;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #30363D;
         }
-        #closeModalButton {
+        .close-modal-button {
             position: absolute;
             top: 10px;
             right: 20px;
@@ -54,9 +59,10 @@
             cursor: pointer;
             line-height: 1;
         }
-        #closeModalButton:hover {
+        .close-modal-button:hover {
             color: white;
         }
+
         #countdown-container {
             color: #E6EDF3;
             background-color: #161B22;
@@ -71,15 +77,15 @@
             color: #00E5FF;
             font-weight: 700;
         }
-        #main-action-container, #result-container, #actions, #history-container {
+        #main-action-container, #result-container, #actions {
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
             background-color: #161B22;
             padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
-            width: 100%;
-            max-width: 800px;
             border: 1px solid #30363D;
-            box-sizing: border-box;
         }
         textarea, select {
             width: 100%;
@@ -128,6 +134,24 @@
         #clearHistoryButton {
             background: linear-gradient(90deg, #dc3545, #fd7e14);
         }
+        /* --- Estilo do Botão Flutuante --- */
+        #showHistoryModalButton {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.8em;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 990;
+        }
+        /* --- Estilos da Tabela --- */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -146,9 +170,6 @@
         }
         th:first-child {
             text-align: left;
-        }
-        td {
-            color: #E6EDF3;
         }
         td.player-name {
             font-weight: 700;
@@ -171,21 +192,16 @@
             text-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
         }
 
-        /* --- ESTILOS PARA TELA DE CELULAR --- */
+        /* --- Estilos Responsivos --- */
         @media screen and (max-width: 768px) {
-            h1 {
-                font-size: 1.8em;
-            }
-            #main-action-container, #result-container, #actions, #history-container {
+            body { padding: 10px; }
+            h1 { font-size: 1.8em; }
+            #main-action-container, #result-container, #actions {
                 width: 100%;
                 padding: 15px;
             }
-            table { 
-                border: 0; 
-            }
-            table thead {
-                display: none; /* Esconde o cabeçalho no celular */
-            }
+            table { border: 0; }
+            table thead { display: none; }
             table tr {
                 display: block;
                 margin-bottom: 15px;
@@ -194,16 +210,14 @@
             }
             table td {
                 display: block;
-                text-align: right; /* Alinha o valor à direita */
-                padding-left: 50%; /* Deixa espaço para o rótulo */
+                text-align: right;
+                padding-left: 50%;
                 position: relative;
                 border-bottom: 1px dotted #21262D;
             }
-            table td:last-child {
-                border-bottom: 0;
-            }
+            table td:last-child { border-bottom: 0; }
             table td::before {
-                content: attr(data-label); /* Pega o texto do atributo data-label */
+                content: attr(data-label);
                 position: absolute;
                 left: 12px;
                 width: 45%;
@@ -211,9 +225,8 @@
                 white-space: nowrap;
                 text-align: left;
                 font-weight: bold;
-                color: #f0b90b; /* Cor amarela para o rótulo */
+                color: #f0b90b;
             }
-            /* Estilo especial para a célula do nome do jogador */
             td.player-name {
                 background-color: rgba(0, 229, 255, 0.1);
                 text-align: center;
@@ -223,12 +236,8 @@
                 border-top-right-radius: 6px;
                 border-bottom: 1px solid #30363D;
             }
-            td.player-name::before {
-                display: none; /* Não mostra o rótulo "Jogador:" */
-            }
-            td.numeric-data {
-                font-size: 1.1em;
-            }
+            td.player-name::before { display: none; }
+            td.numeric-data { font-size: 1.1em; }
         }
     </style>
 </head>
@@ -244,16 +253,6 @@
         <button id="showInputModalButton">Inserir / Atualizar Dados da Semana</button>
     </div>
 
-    <div id="modalOverlay"></div>
-    <div id="controls">
-        <span id="closeModalButton">&times;</span>
-        <h3>Inserir Dados das Imagens</h3>
-        <p>Cole o texto das imagens nos campos abaixo.</p>
-        <textarea id="textInput1" placeholder="Texto da Imagem 1..."></textarea>
-        <textarea id="textInput2" placeholder="Texto da Imagem 2 (opcional)..."></textarea>
-        <button id="processButton">Gerar Tabela Comparativa</button>
-    </div>
-    
     <div id="actions">
         <p>Após gerar a tabela, salve-a no histórico online para que sirva como base de comparação futura.</p>
         <button id="saveButton" disabled>Adicionar Semana ao Histórico</button>
@@ -266,7 +265,21 @@
         </div>
     </div>
     
-    <div id="history-container">
+    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">🗓️</button>
+
+    <div id="inputModalOverlay" class="modal-overlay"></div>
+    <div id="controls" class="modal-container">
+        <span id="closeInputModalButton" class="close-modal-button">&times;</span>
+        <h3>Inserir Dados das Imagens</h3>
+        <p>Cole o texto das imagens nos campos abaixo.</p>
+        <textarea id="textInput1" placeholder="Texto da Imagem 1..."></textarea>
+        <textarea id="textInput2" placeholder="Texto da Imagem 2 (opcional)..."></textarea>
+        <button id="processButton">Gerar Tabela Comparativa</button>
+    </div>
+    
+    <div id="historyModalOverlay" class="modal-overlay"></div>
+    <div id="historyModal" class="modal-container">
+        <span id="closeHistoryModalButton" class="close-modal-button">&times;</span>
         <h2>Histórico de Semanas</h2>
         <p>Selecione uma semana do arquivo para visualizá-la ou volte para a análise atual.</p>
         <select id="weekSelector"></select>
@@ -297,10 +310,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Seleção de Elementos ---
     const showInputModalButton = document.getElementById('showInputModalButton');
-    const modalOverlay = document.getElementById('modalOverlay');
+    const inputModalOverlay = document.getElementById('inputModalOverlay');
     const controlsModal = document.getElementById('controls');
-    const closeModalButton = document.getElementById('closeModalButton');
+    const closeInputModalButton = document.getElementById('closeInputModalButton');
     
+    const showHistoryModalButton = document.getElementById('showHistoryModalButton');
+    const historyModalOverlay = document.getElementById('historyModalOverlay');
+    const historyModal = document.getElementById('historyModal');
+    const closeHistoryModalButton = document.getElementById('closeHistoryModalButton');
+
     const processButton = document.getElementById('processButton');
     const saveButton = document.getElementById('saveButton');
     const textInput1 = document.getElementById('textInput1');
@@ -316,18 +334,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     let currentPlayersData = [];
 
-    // --- LÓGICA DO MODAL ---
-    function openModal() {
-        modalOverlay.style.display = 'block';
+    // --- LÓGICA DOS MODAIS ---
+    function openInputModal() {
+        inputModalOverlay.style.display = 'block';
         controlsModal.style.display = 'block';
     }
-    function closeModal() {
-        modalOverlay.style.display = 'none';
+    function closeInputModal() {
+        inputModalOverlay.style.display = 'none';
         controlsModal.style.display = 'none';
     }
-    showInputModalButton.addEventListener('click', openModal);
-    closeModalButton.addEventListener('click', closeModal);
-    modalOverlay.addEventListener('click', closeModal);
+    showInputModalButton.addEventListener('click', openInputModal);
+    closeInputModalButton.addEventListener('click', closeInputModal);
+    inputModalOverlay.addEventListener('click', closeInputModal);
+
+    function openHistoryModal() {
+        historyModalOverlay.style.display = 'block';
+        historyModal.style.display = 'block';
+    }
+    function closeHistoryModal() {
+        historyModalOverlay.style.display = 'none';
+        historyModal.style.display = 'none';
+    }
+    showHistoryModalButton.addEventListener('click', openHistoryModal);
+    closeHistoryModalButton.addEventListener('click', closeHistoryModal);
+    historyModalOverlay.addEventListener('click', closeHistoryModal);
 
     // --- LÓGICA PRINCIPAL ---
     processButton.addEventListener('click', async () => {
@@ -336,7 +366,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const history = await getHistory();
         const previousData = history.weeks.length > 0 ? history.weeks[history.weeks.length - 1].data : [];
-        
         const parsedPlayers = parseOcrText(combinedText);
         currentPlayersData = comparePlayerData(parsedPlayers, previousData);
         
@@ -346,7 +375,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         saveButton.disabled = false;
         viewCurrentButton.disabled = false;
-        closeModal();
+        closeInputModal();
     });
     
     saveButton.addEventListener('click', async () => {
@@ -355,7 +384,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const history = await getHistory();
             const today = new Date().toLocaleDateString('pt-br', {day: '2-digit', month: '2-digit', year: 'numeric'});
             history.weeks.push({ date: today, data: currentPlayersData });
-            
             try {
                 await historyDocRef.set(history);
                 alert(`Dados da semana de ${today} salvos com sucesso!`);
@@ -367,7 +395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- LÓGICA DO HISTÓRICO ---
+    // --- LÓGICA DO HISTÓRICO (Dentro do Modal) ---
     viewHistoryButton.addEventListener('click', async () => {
         const selectedIndex = weekSelector.value;
         if (selectedIndex === null || selectedIndex === '') return;
@@ -376,6 +404,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tableHTML = generateTableHTML(selectedWeek.data, { isHistoric: true });
         resultTitle.textContent = `Visualizando Semana de ${selectedWeek.date}`;
         tableOutputDiv.innerHTML = tableHTML;
+        closeHistoryModal();
     });
 
     viewCurrentButton.addEventListener('click', () => {
@@ -383,6 +412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: false });
         resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
         tableOutputDiv.innerHTML = tableHTML;
+        closeHistoryModal();
     });
 
     clearHistoryButton.addEventListener('click', async () => {
@@ -414,7 +444,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearHistoryButton.disabled = false;
         } else {
             const option = document.createElement('option');
-            option.textContent = 'Nenhuma semana salva no histórico';
+            option.textContent = 'Nenhuma semana salva';
             weekSelector.appendChild(option);
             viewHistoryButton.disabled = true;
             clearHistoryButton.disabled = true;
@@ -432,6 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
+    // --- LÓGICA DO CRONÔMETRO ---
     function updateCountdown() {
         const now = new Date();
         const targetDay = 2;
@@ -451,6 +482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         countdownTimer.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
     
+    // --- FUNÇÕES DE PROCESSAMENTO E GERAÇÃO ---
     function comparePlayerData(currentData, previousData) {
         const previousDataMap = new Map(previousData.map(p => [p.jogador, p]));
         return currentData.map(player => {
@@ -511,13 +543,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!isHistoric && typeof player.previousTotal === 'number') {
                 totalCellHtml = `<td data-label="Total" class="numeric-data total-score" title="Pontuação Anterior: ${player.previousTotal}">${player.total}</td>`;
             }
-
             html += `<tr>
                         <td data-label="Jogador" class="player-name">${player.jogador}</td>
                         <td data-label="Cubo" class="numeric-data">${player.cubo}</td>
                         <td data-label="Tarefas" class="numeric-data">${player.tarefas}</td>
                         ${totalCellHtml}`;
-            
             if (!isHistoric) {
                 let diffHtml = '<td data-label="Diferença" class="numeric-data">-</td>';
                 if (player.difference === 'Novo') {
