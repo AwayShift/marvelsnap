@@ -16,6 +16,7 @@
             flex-direction: column;
             align-items: center;
             padding: 20px;
+            box-sizing: border-box;
         }
         h1, h2 {
             color: #f0b90b;
@@ -64,6 +65,7 @@
             border: 1px solid #30363D;
             margin-bottom: 20px;
             font-size: 1.1em;
+            text-align: center;
         }
         #countdownTimer {
             color: #00E5FF;
@@ -74,9 +76,10 @@
             padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
-            width: 80%;
+            width: 100%;
             max-width: 800px;
             border: 1px solid #30363D;
+            box-sizing: border-box;
         }
         textarea, select {
             width: 100%;
@@ -167,6 +170,66 @@
             color: #dc3545;
             text-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
         }
+
+        /* --- ESTILOS PARA TELA DE CELULAR --- */
+        @media screen and (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            #main-action-container, #result-container, #actions, #history-container {
+                width: 100%;
+                padding: 15px;
+            }
+            table { 
+                border: 0; 
+            }
+            table thead {
+                display: none; /* Esconde o cabeçalho no celular */
+            }
+            table tr {
+                display: block;
+                margin-bottom: 15px;
+                border: 1px solid #30363D;
+                border-radius: 6px;
+            }
+            table td {
+                display: block;
+                text-align: right; /* Alinha o valor à direita */
+                padding-left: 50%; /* Deixa espaço para o rótulo */
+                position: relative;
+                border-bottom: 1px dotted #21262D;
+            }
+            table td:last-child {
+                border-bottom: 0;
+            }
+            table td::before {
+                content: attr(data-label); /* Pega o texto do atributo data-label */
+                position: absolute;
+                left: 12px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: bold;
+                color: #f0b90b; /* Cor amarela para o rótulo */
+            }
+            /* Estilo especial para a célula do nome do jogador */
+            td.player-name {
+                background-color: rgba(0, 229, 255, 0.1);
+                text-align: center;
+                padding-left: 12px;
+                font-size: 1.2em;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                border-bottom: 1px solid #30363D;
+            }
+            td.player-name::before {
+                display: none; /* Não mostra o rótulo "Jogador:" */
+            }
+            td.numeric-data {
+                font-size: 1.1em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -212,14 +275,12 @@
         <button id="clearHistoryButton" disabled>Limpar Histórico Online</button>
     </div>
     
-    <!-- Scripts do Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script>
 document.addEventListener('DOMContentLoaded', async () => {
     
-    // --- CONFIGURAÇÃO DO FIREBASE (Sua Configuração) ---
     const firebaseConfig = {
       apiKey: "AIzaSyAxFwYdzni3SVOerZAO-ELRyDGFSoRGlLU",
       authDomain: "marvelsnap-e6bb0.firebaseapp.com",
@@ -230,7 +291,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       measurementId: "G-NW3DNL02VW"
     };
 
-    // Inicializa o Firebase e o Firestore
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const historyDocRef = db.collection("clanData").doc("history");
@@ -290,8 +350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     saveButton.addEventListener('click', async () => {
-        if (currentPlayersData.length === 0) return alert('Não há dados para salvar. Gere uma tabela primeiro.');
-
+        if (currentPlayersData.length === 0) return alert('Não há dados para salvar.');
         if (confirm('Deseja salvar os dados no histórico online para todo o clã?')) {
             const history = await getHistory();
             const today = new Date().toLocaleDateString('pt-br', {day: '2-digit', month: '2-digit', year: 'numeric'});
@@ -320,9 +379,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     viewCurrentButton.addEventListener('click', () => {
-        if (currentPlayersData.length === 0) {
-            return alert('Nenhuma tabela da semana atual foi gerada ainda.');
-        }
+        if (currentPlayersData.length === 0) return alert('Nenhuma tabela da semana atual foi gerada ainda.');
         const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: false });
         resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
         tableOutputDiv.innerHTML = tableHTML;
@@ -375,7 +432,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // --- LÓGICA DO CRONÔMETRO ---
     function updateCountdown() {
         const now = new Date();
         const targetDay = 2;
@@ -395,7 +451,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         countdownTimer.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
     
-    // --- FUNÇÕES DE PROCESSAMENTO E GERAÇÃO ---
     function comparePlayerData(currentData, previousData) {
         const previousDataMap = new Map(previousData.map(p => [p.jogador, p]));
         return currentData.map(player => {
@@ -452,19 +507,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!isHistoric) html += '<th>Diferença</th>';
         html += '</tr></thead><tbody>';
         for (const player of playersData) {
-            let totalCellHtml = `<td class="numeric-data">${player.total}</td>`;
+            let totalCellHtml = `<td data-label="Total" class="numeric-data">${player.total}</td>`;
             if (!isHistoric && typeof player.previousTotal === 'number') {
-                totalCellHtml = `<td class="numeric-data total-score" title="Pontuação Anterior: ${player.previousTotal}">${player.total}</td>`;
+                totalCellHtml = `<td data-label="Total" class="numeric-data total-score" title="Pontuação Anterior: ${player.previousTotal}">${player.total}</td>`;
             }
-            html += `<tr><td class="player-name">${player.jogador}</td><td class="numeric-data">${player.cubo}</td><td class="numeric-data">${player.tarefas}</td>${totalCellHtml}`;
+
+            html += `<tr>
+                        <td data-label="Jogador" class="player-name">${player.jogador}</td>
+                        <td data-label="Cubo" class="numeric-data">${player.cubo}</td>
+                        <td data-label="Tarefas" class="numeric-data">${player.tarefas}</td>
+                        ${totalCellHtml}`;
+            
             if (!isHistoric) {
-                let diffHtml = '<td class="numeric-data">-</td>';
+                let diffHtml = '<td data-label="Diferença" class="numeric-data">-</td>';
                 if (player.difference === 'Novo') {
-                    diffHtml = `<td class="numeric-data">${player.difference}</td>`;
+                    diffHtml = `<td data-label="Diferença" class="numeric-data">${player.difference}</td>`;
                 } else if (typeof player.difference === 'number') {
-                    if (player.difference > 0) diffHtml = `<td class="numeric-data positive-diff">+${player.difference}</td>`;
-                    else if (player.difference < 0) diffHtml = `<td class="numeric-data negative-diff">${player.difference}</td>`;
-                    else diffHtml = `<td class="numeric-data">${player.difference}</td>`;
+                    if (player.difference > 0) diffHtml = `<td data-label="Diferença" class="numeric-data positive-diff">+${player.difference}</td>`;
+                    else if (player.difference < 0) diffHtml = `<td data-label="Diferença" class="numeric-data negative-diff">${player.difference}</td>`;
+                    else diffHtml = `<td data-label="Diferença" class="numeric-data">${player.difference}</td>`;
                 }
                 html += diffHtml;
             }
@@ -475,7 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Inicializa a página
-    await populateHistoryDropdown();
+    populateHistoryDropdown();
     updateCountdown();
     setInterval(updateCountdown, 1000);
 });
