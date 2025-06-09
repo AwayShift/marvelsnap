@@ -142,7 +142,6 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             z-index: 990;
         }
-        /* --- Estilos dos Botões do Histórico --- */
         #historyModal button {
             font-size: 14px;
             padding: 8px 12px;
@@ -159,6 +158,23 @@
         #clearHistoryButton {
             background: linear-gradient(90deg, #dc3545, #fd7e14);
         }
+        #toggleColumnButton {
+            background: none;
+            border: 1px solid #00E5FF;
+            color: #00E5FF;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            margin: 0 0 0 10px;
+            font-size: 16px;
+            line-height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+            min-width: 28px;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -174,6 +190,7 @@
             color: #00E5FF;
             font-weight: 700;
             text-align: right;
+            white-space: nowrap;
         }
         th:first-child {
             text-align: left;
@@ -187,8 +204,9 @@
             font-weight: 700;
             text-shadow: 0 0 5px rgba(0, 229, 255, 0.4);
         }
-        td.total-score {
-            cursor: help;
+        .toggle-cell {
+            cursor: pointer;
+            user-select: none; /* Evita que o texto seja selecionado ao clicar */
         }
         .positive-diff {
             color: #28a745;
@@ -206,6 +224,7 @@
                 width: 100%;
                 padding: 15px;
             }
+            #toggleColumnButton { display: none; }
             table { border: 0; }
             table thead { display: none; }
             table tr {
@@ -244,58 +263,22 @@
             }
             td.player-name::before { display: none; }
             td.numeric-data { font-size: 1.1em; }
+            .toggle-cell { cursor: default; } /* Desativa o cursor de clique no mobile */
         }
     </style>
 </head>
 <body>
 
     <h1>Gerador de Dados de Clã (Marvel Snap)</h1>
-    
-    <div id="countdown-container">
-        Próximo reset em: <span id="countdownTimer">Calculando...</span>
-    </div>
-
-    <div id="main-action-container">
-        <button id="showInputModalButton">Inserir / Atualizar Dados da Semana</button>
-    </div>
-
-    <div id="actions">
-        <p>Após gerar uma nova tabela, salve-a no histórico online para o futuro.</p>
-        <button id="saveButton" disabled>Adicionar Semana ao Histórico</button>
-    </div>
-
-    <div id="result-container">
-        <h2 id="resultTitle">Tabela de Resultados</h2>
-        <div id="tableOutput">
-            <p>Carregando dados mais recentes...</p>
-        </div>
-    </div>
-    
+    <div id="countdown-container">Próximo reset em: <span id="countdownTimer">Calculando...</span></div>
+    <div id="main-action-container"><button id="showInputModalButton">Inserir / Atualizar Dados da Semana</button></div>
+    <div id="actions"><p>Após gerar uma nova tabela, salve-a no histórico online para o futuro.</p><button id="saveButton" disabled>Adicionar Semana ao Histórico</button></div>
+    <div id="result-container"><h2 id="resultTitle">Tabela de Resultados</h2><div id="tableOutput"><p>Carregando dados mais recentes...</p></div></div>
     <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">📜</button>
-
     <div id="inputModalOverlay" class="modal-overlay"></div>
-    <div id="controls" class="modal-container">
-        <span id="closeInputModalButton" class="close-modal-button">&times;</span>
-        <h3>Inserir Dados das Imagens</h3>
-        <p>Cole o texto das imagens nos campos abaixo.</p>
-        <textarea id="textInput1" placeholder="Texto da Imagem 1..."></textarea>
-        <textarea id="textInput2" placeholder="Texto da Imagem 2 (opcional)..."></textarea>
-        <button id="processButton">Gerar Tabela Comparativa</button>
-    </div>
-    
+    <div id="controls" class="modal-container"><span id="closeInputModalButton" class="close-modal-button">&times;</span><h3>Inserir Dados das Imagens</h3><p>Cole o texto das imagens nos campos abaixo.</p><textarea id="textInput1" placeholder="Texto da Imagem 1..."></textarea><textarea id="textInput2" placeholder="Texto da Imagem 2 (opcional)..."></textarea><button id="processButton">Gerar Tabela Comparativa</button></div>
     <div id="historyModalOverlay" class="modal-overlay"></div>
-    <div id="historyModal" class="modal-container">
-        <span id="closeHistoryModalButton" class="close-modal-button">&times;</span>
-        <h2>Histórico de Semanas</h2>
-        <p>Selecione uma semana para gerenciar.</p>
-        <select id="weekSelector"></select>
-        <button id="viewHistoryButton" disabled>Visualizar Semana</button>
-        <button id="editDateButton" disabled>Editar Data</button>
-        <button id="deleteWeekButton" disabled>Excluir Semana</button>
-        <hr style="border-color: #30363D; margin: 20px 0;">
-        <button id="viewCurrentButton" disabled>Voltar à Semana Atual</button>
-        <button id="clearHistoryButton" disabled>Limpar Todo o Histórico</button>
-    </div>
+    <div id="historyModal" class="modal-container"><span id="closeHistoryModalButton" class="close-modal-button">&times;</span><h2>Histórico de Semanas</h2><p>Selecione uma semana para gerenciar.</p><select id="weekSelector"></select><button id="viewHistoryButton" disabled>Visualizar Semana</button><button id="editDateButton" disabled>Editar Data</button><button id="deleteWeekButton" disabled>Excluir Semana</button><hr style="border-color: #30363D; margin: 20px 0;"><button id="viewCurrentButton" disabled>Voltar à Semana Atual</button><button id="clearHistoryButton" disabled>Limpar Todo o Histórico</button></div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -341,6 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           clearHistoryButton = document.getElementById('clearHistoryButton');
     
     let currentPlayersData = [];
+    let showingDifference = true;
 
     // Lógica dos Modais
     function openInputModal() { inputModalOverlay.style.display = 'block'; controlsModal.style.display = 'block'; }
@@ -355,20 +339,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeHistoryModalButton.addEventListener('click', closeHistoryModal);
     historyModalOverlay.addEventListener('click', closeHistoryModal);
 
-    // Lógica Principal
+    // Lógica Principal e de Eventos
     processButton.addEventListener('click', async () => {
+        showingDifference = true;
         const combinedText = textInput1.value + '\n' + textInput2.value;
         if (combinedText.trim() === '') return alert('Por favor, cole o texto de pelo menos uma imagem.');
-        
         const history = await getHistory();
         const previousData = history.weeks.length > 0 ? history.weeks[history.weeks.length - 1].data : [];
         const parsedPlayers = parseOcrText(combinedText);
         currentPlayersData = comparePlayerData(parsedPlayers, previousData);
-        
-        const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: false });
+        renderTable(currentPlayersData, { isHistoric: false });
         resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
-        tableOutputDiv.innerHTML = tableHTML;
-        
         saveButton.disabled = false;
         viewCurrentButton.disabled = false;
         closeInputModal();
@@ -388,21 +369,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Lógica do Histórico
+    tableOutputDiv.addEventListener('click', (event) => {
+        const toggleTrigger = event.target.closest('#toggleColumnButton, .toggle-cell');
+        if (toggleTrigger) {
+            showingDifference = !showingDifference;
+            renderTable(currentPlayersData, { isHistoric: false, showDiff: showingDifference });
+        }
+    });
+
     viewHistoryButton.addEventListener('click', async () => {
         const selectedIndex = weekSelector.value;
-        if (selectedIndex === null || selectedIndex === '') return;
+        if (!selectedIndex) return;
         const history = await getHistory();
         const selectedWeek = history.weeks[selectedIndex];
-        const tableHTML = generateTableHTML(selectedWeek.data, { isHistoric: true });
+        renderTable(selectedWeek.data, { isHistoric: true });
         resultTitle.textContent = `Visualizando Semana de ${selectedWeek.date}`;
-        tableOutputDiv.innerHTML = tableHTML;
         closeHistoryModal();
     });
 
     editDateButton.addEventListener('click', async () => {
         const selectedIndex = weekSelector.value;
-        if (selectedIndex === null || selectedIndex === '') return;
+        if (!selectedIndex) return;
         const history = await getHistory();
         const currentWeek = history.weeks[selectedIndex];
         const newDate = prompt(`Digite a nova data para a semana de "${currentWeek.date}" (DD/MM/AAAA):`, currentWeek.date);
@@ -419,10 +406,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     deleteWeekButton.addEventListener('click', async () => {
         const selectedIndex = weekSelector.value;
-        if (selectedIndex === null || selectedIndex === '') return;
+        if (!selectedIndex) return;
         const history = await getHistory();
         const weekToDelete = history.weeks[selectedIndex];
-
         if (confirm(`Tem certeza que deseja EXCLUIR a semana de ${weekToDelete.date}?`)) {
             history.weeks.splice(selectedIndex, 1);
             try {
@@ -435,11 +421,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     viewCurrentButton.addEventListener('click', () => {
+        showingDifference = true;
         if (currentPlayersData.length === 0) return alert('Nenhuma tabela da semana atual foi carregada ou gerada.');
         const isComparative = currentPlayersData[0] && currentPlayersData[0].hasOwnProperty('previousTotal');
-        const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: !isComparative });
+        renderTable(currentPlayersData, { isHistoric: !isComparative });
         resultTitle.textContent = 'Análise da Semana Mais Recente';
-        tableOutputDiv.innerHTML = tableHTML;
         closeHistoryModal();
     });
 
@@ -519,12 +505,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const items = ocrText.replace(/[.,]/g, '').split(/\s+/).filter(item => item.trim() !== '');
         const playersWithDuplicates = [];
         let currentPlayer = { jogador: '', numbers: [] };
-
         for (const item of items) {
             if (isNaN(parseInt(item))) {
-                // CORREÇÃO: Verifica se um novo nome está começando enquanto já há números coletados.
                 if (currentPlayer.numbers.length > 0) {
-                    // Descarta o jogador anterior malformado e começa um novo.
                     currentPlayer = { jogador: ` ${item}`, numbers: [] };
                 } else {
                     currentPlayer.jogador += ` ${item}`;
@@ -532,7 +515,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (currentPlayer.jogador) {
                 currentPlayer.numbers.push(item);
             }
-
             if (currentPlayer.jogador && currentPlayer.numbers.length === 3) {
                 const rawName = currentPlayer.jogador.trim();
                 const cleanedName = rawName.replace(/^[\s⭐*★]+/g, '');
@@ -556,34 +538,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         return uniquePlayers;
     }
 
+    function renderTable(data, options) {
+        tableOutputDiv.innerHTML = generateTableHTML(data, options);
+    }
+    
     function generateTableHTML(playersData, options = {}) {
-        const { isHistoric = false } = options;
+        const { isHistoric = false, showDiff = true } = options;
         if (playersData.length === 0) return '<p>Nenhum dado de jogador válido foi encontrado.</p>';
-        playersData.sort((a, b) => b.total - a.total);
+        playersData.sort((a, b) => (b.total || 0) - (a.total || 0));
+        
+        let lastColumnHeader = '';
+        if (!isHistoric) {
+            lastColumnHeader = showDiff ? 'Diferença' : 'Pont. Anterior';
+        }
+        
         let html = '<table><thead><tr>';
-        html += '<th>Jogador</th><th>Cubo</th><th>Tarefas</th><th>Total</th>';
-        if (!isHistoric) html += '<th>Diferença</th>';
+        html += `<th>Jogador ${!isHistoric ? '<button id="toggleColumnButton" title="Alternar Visualização">&#x21C6;</button>' : ''}</th><th>Cubo</th><th>Tarefas</th><th>Total</th>`;
+        if (!isHistoric) html += `<th>${lastColumnHeader}</th>`;
         html += '</tr></thead><tbody>';
+
         for (const player of playersData) {
-            let totalCellHtml = `<td data-label="Total" class="numeric-data">${player.total}</td>`;
-            if (!isHistoric && typeof player.previousTotal === 'number') {
-                totalCellHtml = `<td data-label="Total" class="numeric-data total-score" title="Pontuação Anterior: ${player.previousTotal}">${player.total}</td>`;
-            }
             html += `<tr>
                         <td data-label="Jogador" class="player-name">${player.jogador}</td>
-                        <td data-label="Cubo" class="numeric-data">${player.cubo}</td>
-                        <td data-label="Tarefas" class="numeric-data">${player.tarefas}</td>
-                        ${totalCellHtml}`;
+                        <td data-label="Cubo" class="numeric-data">${player.cubo || 0}</td>
+                        <td data-label="Tarefas" class="numeric-data">${player.tarefas || 0}</td>
+                        <td data-label="Total" class="numeric-data">${player.total || 0}</td>`;
+            
             if (!isHistoric) {
-                let diffHtml = '<td data-label="Diferença" class="numeric-data">-</td>';
-                if (player.difference === 'Novo') {
-                    diffHtml = `<td data-label="Diferença" class="numeric-data">${player.difference}</td>`;
-                } else if (typeof player.difference === 'number') {
-                    if (player.difference > 0) diffHtml = `<td data-label="Diferença" class="numeric-data positive-diff">+${player.difference}</td>`;
-                    else if (player.difference < 0) diffHtml = `<td data-label="Diferença" class="numeric-data negative-diff">${player.difference}</td>`;
-                    else diffHtml = `<td data-label="Diferença" class="numeric-data">${player.difference}</td>`;
+                let lastColumnHtml = '<td data-label="-" class="numeric-data">-</td>';
+                if (showDiff) {
+                    if (player.difference === 'Novo') {
+                        lastColumnHtml = `<td data-label="Diferença" class="numeric-data toggle-cell" title="Clique para alternar">${player.difference}</td>`;
+                    } else if (typeof player.difference === 'number') {
+                        const sign = player.difference > 0 ? '+' : '';
+                        const diffClass = player.difference > 0 ? 'positive-diff' : (player.difference < 0 ? 'negative-diff' : '');
+                        lastColumnHtml = `<td data-label="Diferença" class="numeric-data toggle-cell ${diffClass}" title="Clique para alternar">${sign}${player.difference}</td>`;
+                    }
+                } else {
+                    if (typeof player.previousTotal === 'number') {
+                        lastColumnHtml = `<td data-label="Pont. Anterior" class="numeric-data toggle-cell" title="Clique para alternar">${player.previousTotal}</td>`;
+                    } else {
+                        lastColumnHtml = `<td data-label="Pont. Anterior" class="numeric-data toggle-cell" title="Clique para alternar">${player.difference === 'Novo' ? 'N/A' : '-'}</td>`;
+                    }
                 }
-                html += diffHtml;
+                html += lastColumnHtml;
             }
             html += '</tr>';
         }
@@ -599,15 +597,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     async function loadLatestComparison() {
+        showingDifference = true;
         const history = await getHistory();
         if (history.weeks.length === 0) {
             tableOutputDiv.innerHTML = '<p>Nenhum histórico encontrado. Insira os dados da primeira semana para começar.</p>';
             return;
         }
-
         let isComparative = false;
         if (history.weeks.length >= 2) {
-            const latestWeekData = history.weeks[history.weeks.length - 1].data;
+            const latestWeekData = [...history.weeks[history.weeks.length - 1].data];
             const previousWeekData = history.weeks[history.weeks.length - 2].data;
             currentPlayersData = comparePlayerData(latestWeekData, previousWeekData);
             isComparative = true;
@@ -616,9 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentPlayersData = history.weeks[0].data;
             resultTitle.textContent = `Visualizando a Única Semana Salva (${history.weeks[0].date})`;
         }
-        
-        const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: !isComparative });
-        tableOutputDiv.innerHTML = tableHTML;
+        renderTable(currentPlayersData, { isHistoric: !isComparative });
         viewCurrentButton.disabled = false;
     }
 
