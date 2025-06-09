@@ -159,7 +159,6 @@
         #clearHistoryButton {
             background: linear-gradient(90deg, #dc3545, #fd7e14);
         }
-        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -272,7 +271,7 @@
         </div>
     </div>
     
-    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">🗓️</button>
+    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">📜</button>
 
     <div id="inputModalOverlay" class="modal-overlay"></div>
     <div id="controls" class="modal-container">
@@ -318,60 +317,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     const db = firebase.firestore();
     const historyDocRef = db.collection("clanData").doc("history");
 
-    // --- Seleção de Elementos ---
-    const showInputModalButton = document.getElementById('showInputModalButton');
-    const inputModalOverlay = document.getElementById('inputModalOverlay');
-    const controlsModal = document.getElementById('controls');
-    const closeInputModalButton = document.getElementById('closeInputModalButton');
-    
-    const showHistoryModalButton = document.getElementById('showHistoryModalButton');
-    const historyModalOverlay = document.getElementById('historyModalOverlay');
-    const historyModal = document.getElementById('historyModal');
-    const closeHistoryModalButton = document.getElementById('closeHistoryModalButton');
-
-    const processButton = document.getElementById('processButton');
-    const saveButton = document.getElementById('saveButton');
-    const textInput1 = document.getElementById('textInput1');
-    const textInput2 = document.getElementById('textInput2');
-    const tableOutputDiv = document.getElementById('tableOutput');
-    const resultTitle = document.getElementById('resultTitle');
-    const countdownTimer = document.getElementById('countdownTimer');
-    
-    const weekSelector = document.getElementById('weekSelector');
-    const viewHistoryButton = document.getElementById('viewHistoryButton');
-    const editDateButton = document.getElementById('editDateButton');
-    const deleteWeekButton = document.getElementById('deleteWeekButton');
-    const viewCurrentButton = document.getElementById('viewCurrentButton');
-    const clearHistoryButton = document.getElementById('clearHistoryButton');
+    // Seleção de Elementos
+    const showInputModalButton = document.getElementById('showInputModalButton'),
+          inputModalOverlay = document.getElementById('inputModalOverlay'),
+          controlsModal = document.getElementById('controls'),
+          closeInputModalButton = document.getElementById('closeInputModalButton'),
+          showHistoryModalButton = document.getElementById('showHistoryModalButton'),
+          historyModalOverlay = document.getElementById('historyModalOverlay'),
+          historyModal = document.getElementById('historyModal'),
+          closeHistoryModalButton = document.getElementById('closeHistoryModalButton'),
+          processButton = document.getElementById('processButton'),
+          saveButton = document.getElementById('saveButton'),
+          textInput1 = document.getElementById('textInput1'),
+          textInput2 = document.getElementById('textInput2'),
+          tableOutputDiv = document.getElementById('tableOutput'),
+          resultTitle = document.getElementById('resultTitle'),
+          countdownTimer = document.getElementById('countdownTimer'),
+          weekSelector = document.getElementById('weekSelector'),
+          viewHistoryButton = document.getElementById('viewHistoryButton'),
+          editDateButton = document.getElementById('editDateButton'),
+          deleteWeekButton = document.getElementById('deleteWeekButton'),
+          viewCurrentButton = document.getElementById('viewCurrentButton'),
+          clearHistoryButton = document.getElementById('clearHistoryButton');
     
     let currentPlayersData = [];
 
-    // --- LÓGICA DOS MODAIS ---
-    function openInputModal() {
-        inputModalOverlay.style.display = 'block';
-        controlsModal.style.display = 'block';
-    }
-    function closeInputModal() {
-        inputModalOverlay.style.display = 'none';
-        controlsModal.style.display = 'none';
-    }
+    // Lógica dos Modais
+    function openInputModal() { inputModalOverlay.style.display = 'block'; controlsModal.style.display = 'block'; }
+    function closeInputModal() { inputModalOverlay.style.display = 'none'; controlsModal.style.display = 'none'; }
     showInputModalButton.addEventListener('click', openInputModal);
     closeInputModalButton.addEventListener('click', closeInputModal);
     inputModalOverlay.addEventListener('click', closeInputModal);
 
-    function openHistoryModal() {
-        historyModalOverlay.style.display = 'block';
-        historyModal.style.display = 'block';
-    }
-    function closeHistoryModal() {
-        historyModalOverlay.style.display = 'none';
-        historyModal.style.display = 'none';
-    }
+    function openHistoryModal() { historyModalOverlay.style.display = 'block'; historyModal.style.display = 'block'; }
+    function closeHistoryModal() { historyModalOverlay.style.display = 'none'; historyModal.style.display = 'none'; }
     showHistoryModalButton.addEventListener('click', openHistoryModal);
     closeHistoryModalButton.addEventListener('click', closeHistoryModal);
     historyModalOverlay.addEventListener('click', closeHistoryModal);
 
-    // --- LÓGICA PRINCIPAL ---
+    // Lógica Principal
     processButton.addEventListener('click', async () => {
         const combinedText = textInput1.value + '\n' + textInput2.value;
         if (combinedText.trim() === '') return alert('Por favor, cole o texto de pelo menos uma imagem.');
@@ -400,14 +384,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await historyDocRef.set(history);
                 alert(`Dados da semana de ${today} salvos com sucesso!`);
                 await populateHistoryDropdown();
-            } catch (error) {
-                console.error("Erro ao salvar no Firestore: ", error);
-                alert("Ocorreu um erro ao salvar os dados.");
-            }
+            } catch (error) { console.error("Erro ao salvar: ", error); alert("Ocorreu um erro ao salvar."); }
         }
     });
 
-    // --- LÓGICA DO HISTÓRICO ---
+    // Lógica do Histórico
     viewHistoryButton.addEventListener('click', async () => {
         const selectedIndex = weekSelector.value;
         if (selectedIndex === null || selectedIndex === '') return;
@@ -433,34 +414,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert("Data atualizada com sucesso!");
             await populateHistoryDropdown();
             weekSelector.value = selectedIndex;
-        } catch (error) {
-            console.error("Erro ao editar data: ", error);
-            alert("Ocorreu um erro ao editar a data.");
-        }
+        } catch (error) { console.error("Erro ao editar data: ", error); alert("Ocorreu um erro ao editar a data."); }
     });
 
     deleteWeekButton.addEventListener('click', async () => {
         const selectedIndex = weekSelector.value;
         if (selectedIndex === null || selectedIndex === '') return;
+        const history = await getHistory();
+        const weekToDelete = history.weeks[selectedIndex];
 
-        if (confirm('Tem certeza que deseja EXCLUIR a semana selecionada do histórico?')) {
-            const history = await getHistory();
-            history.weeks.splice(selectedIndex, 1); // Remove o item do array
+        if (confirm(`Tem certeza que deseja EXCLUIR a semana de ${weekToDelete.date}?`)) {
+            history.weeks.splice(selectedIndex, 1);
             try {
                 await historyDocRef.set(history);
                 alert("Semana excluída com sucesso.");
                 await populateHistoryDropdown();
-                await loadLatestComparison(); // Recarrega a visualização principal
-            } catch (error) {
-                console.error("Erro ao excluir semana: ", error);
-                alert("Ocorreu um erro ao excluir a semana.");
-            }
+                await loadLatestComparison();
+            } catch (error) { console.error("Erro ao excluir semana: ", error); alert("Ocorreu um erro ao excluir a semana."); }
         }
     });
 
     viewCurrentButton.addEventListener('click', () => {
-        if (currentPlayersData.length === 0) return alert('Nenhuma tabela da semana atual foi carregada ou gerada ainda.');
-        const isComparative = currentPlayersData[0].hasOwnProperty('previousTotal');
+        if (currentPlayersData.length === 0) return alert('Nenhuma tabela da semana atual foi carregada ou gerada.');
+        const isComparative = currentPlayersData[0] && currentPlayersData[0].hasOwnProperty('previousTotal');
         const tableHTML = generateTableHTML(currentPlayersData, { isHistoric: !isComparative });
         resultTitle.textContent = 'Análise da Semana Mais Recente';
         tableOutputDiv.innerHTML = tableHTML;
@@ -468,17 +444,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     clearHistoryButton.addEventListener('click', async () => {
-        if (confirm('Tem certeza que deseja apagar TODO o histórico online? Esta ação não pode ser desfeita.')) {
+        if (confirm('Tem certeza que deseja apagar TODO o histórico online?')) {
             try {
                 await historyDocRef.set({ weeks: [] });
                 alert('Histórico online apagado.');
                 await populateHistoryDropdown();
                 tableOutputDiv.innerHTML = '<p>Histórico limpo. Gere uma nova tabela para começar.</p>';
                 resultTitle.textContent = 'Tabela de Resultados';
-            } catch (error) {
-                console.error("Erro ao limpar histórico: ", error);
-                alert("Ocorreu um erro ao limpar o histórico online.");
-            }
+            } catch (error) { console.error("Erro ao limpar histórico: ", error); alert("Ocorreu um erro."); }
         }
     });
 
@@ -506,11 +479,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const doc = await historyDocRef.get();
             return doc.exists ? doc.data() : { weeks: [] };
-        } catch (error) {
-            console.error("Erro ao buscar histórico: ", error);
-            alert("Não foi possível carregar os dados do histórico online.");
-            return { weeks: [] };
-        }
+        } catch (error) { console.error("Erro ao buscar histórico: ", error); return { weeks: [] }; }
     }
     
     function updateCountdown() {
@@ -550,12 +519,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const items = ocrText.replace(/[.,]/g, '').split(/\s+/).filter(item => item.trim() !== '');
         const playersWithDuplicates = [];
         let currentPlayer = { jogador: '', numbers: [] };
+
         for (const item of items) {
             if (isNaN(parseInt(item))) {
-                currentPlayer.jogador += ` ${item}`;
+                // CORREÇÃO: Verifica se um novo nome está começando enquanto já há números coletados.
+                if (currentPlayer.numbers.length > 0) {
+                    // Descarta o jogador anterior malformado e começa um novo.
+                    currentPlayer = { jogador: ` ${item}`, numbers: [] };
+                } else {
+                    currentPlayer.jogador += ` ${item}`;
+                }
             } else if (currentPlayer.jogador) {
                 currentPlayer.numbers.push(item);
             }
+
             if (currentPlayer.jogador && currentPlayer.numbers.length === 3) {
                 const rawName = currentPlayer.jogador.trim();
                 const cleanedName = rawName.replace(/^[\s⭐*★]+/g, '');
