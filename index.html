@@ -81,12 +81,20 @@
             margin-bottom: 10px;
             text-align: left;
         }
-        #main-action-container, #result-container, #actions {
+        #management-wrapper, #result-container {
             box-sizing: border-box;
-            background-color: #161B22;
+        }
+        #main-action-container, #actions {
+             background-color: #161B22;
             padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
+            border: 1px solid #30363D;
+        }
+        #result-container {
+            background-color: #161B22;
+            padding: 25px;
+            border-radius: 8px;
             border: 1px solid #30363D;
         }
         textarea, select {
@@ -134,9 +142,9 @@
             height: 45px;
             border-radius: 8px;
             font-size: 24px;
-            color: #d1d1cf;
             padding: 8px;
             margin: 0;
+            color: #d1d1cf;
             line-height: 1;
             display: inline-flex;
             align-items: center;
@@ -227,12 +235,12 @@
             cursor: pointer;
             user-select: none;
         }
-        .positive-diff {
-            color: #28a745 !important;
+        td.positive-diff {
+            color: #28a745;
             text-shadow: 0 0 8px rgba(40, 167, 69, 0.7);
         }
-        .negative-diff {
-            color: #dc3545 !important;
+        td.negative-diff {
+            color: #dc3545;
             text-shadow: 0 0 8px rgba(220, 53, 69, 0.7);
         }
         tr.special-player > td {
@@ -256,6 +264,7 @@
         }
 
         @media screen and (max-width: 768px) {
+            body { padding: 10px; }
             #main-action-container, #result-container, #actions {
                 width: 100%;
                 padding: 15px;
@@ -346,7 +355,7 @@
         </div>
     </div>
     
-    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">🗓️</button>
+    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">📜</button>
 
     <div id="inputModalOverlay" class="modal-overlay"></div>
     <div id="controls" class="modal-container">
@@ -384,85 +393,98 @@
     <script>
 document.addEventListener('DOMContentLoaded', async () => {
     
-    const firebaseConfig = {
-      apiKey: "AIzaSyAxFwYdzni3SVOerZAO-ELRyDGFSoRGlLU",
-      authDomain: "marvelsnap-e6bb0.firebaseapp.com",
-      projectId: "marvelsnap-e6bb0",
-      storageBucket: "marvelsnap-e6bb0.appspot.com",
-      messagingSenderId: "679376113892",
-      appId: "1:679376113892:web:b71a52627e05d7ef961cf1",
-      measurementId: "G-NW3DNL02VW"
+    // --- CONFIGURAÇÕES E INICIALIZAÇÃO ---
+    const config = {
+        firebase: {
+            apiKey: "AIzaSyAxFwYdzni3SVOerZAO-ELRyDGFSoRGlLU",
+            authDomain: "marvelsnap-e6bb0.firebaseapp.com",
+            projectId: "marvelsnap-e6bb0",
+            storageBucket: "marvelsnap-e6bb0.appspot.com",
+            messagingSenderId: "679376113892",
+            appId: "1:679376113892:web:b71a52627e05d7ef961cf1",
+            measurementId: "G-NW3DNL02VW"
+        },
+        highlight: {
+            highScoreThreshold: 3500,
+            specialPlayers: ['Awayshift', 'MeganosPkz']
+        },
+        resetTime: {
+            day: 2, // Terça-feira (0=Domingo, 1=Segunda, ...)
+            hour: 16
+        }
     };
 
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(config.firebase);
     const db = firebase.firestore();
     const historyDocRef = db.collection("clanData").doc("history");
 
-    // Seleção de Elementos
-    const showInputModalButton = document.getElementById('showInputModalButton'),
-          inputModalOverlay = document.getElementById('inputModalOverlay'),
-          controlsModal = document.getElementById('controls'),
-          closeInputModalButton = document.getElementById('closeInputModalButton'),
-          showHistoryModalButton = document.getElementById('showHistoryModalButton'),
-          historyModalOverlay = document.getElementById('historyModalOverlay'),
-          historyModal = document.getElementById('historyModal'),
-          closeHistoryModalButton = document.getElementById('closeHistoryModalButton'),
-          processButton = document.getElementById('processButton'),
-          saveButton = document.getElementById('saveButton'),
-          textInput1 = document.getElementById('textInput1'),
-          textInput2 = document.getElementById('textInput2'),
-          tableOutputDiv = document.getElementById('tableOutput'),
-          resultTitle = document.getElementById('resultTitle'),
-          countdownTimer = document.getElementById('countdownTimer'),
-          weekSelector = document.getElementById('weekSelector'),
-          viewHistoryButton = document.getElementById('viewHistoryButton'),
-          editDateButton = document.getElementById('editDateButton'),
-          deleteWeekButton = document.getElementById('deleteWeekButton'),
-          viewCurrentButton = document.getElementById('viewCurrentButton'),
-          clearHistoryButton = document.getElementById('clearHistoryButton'),
-          toggleManagementButton = document.getElementById('toggleManagementButton'),
-          managementWrapper = document.getElementById('management-wrapper');
+    const elements = {
+        showInputModalButton: document.getElementById('showInputModalButton'),
+        inputModalOverlay: document.getElementById('inputModalOverlay'),
+        controlsModal: document.getElementById('controls'),
+        closeInputModalButton: document.getElementById('closeInputModalButton'),
+        showHistoryModalButton: document.getElementById('showHistoryModalButton'),
+        historyModalOverlay: document.getElementById('historyModalOverlay'),
+        historyModal: document.getElementById('historyModal'),
+        closeHistoryModalButton: document.getElementById('closeHistoryModalButton'),
+        processButton: document.getElementById('processButton'),
+        saveButton: document.getElementById('saveButton'),
+        textInput1: document.getElementById('textInput1'),
+        textInput2: document.getElementById('textInput2'),
+        tableOutputDiv: document.getElementById('tableOutput'),
+        resultTitle: document.getElementById('resultTitle'),
+        countdownTimer: document.getElementById('countdownTimer'),
+        weekSelector: document.getElementById('weekSelector'),
+        viewHistoryButton: document.getElementById('viewHistoryButton'),
+        editDateButton: document.getElementById('editDateButton'),
+        deleteWeekButton: document.getElementById('deleteWeekButton'),
+        viewCurrentButton: document.getElementById('viewCurrentButton'),
+        clearHistoryButton: document.getElementById('clearHistoryButton'),
+        toggleManagementButton: document.getElementById('toggleManagementButton'),
+        managementWrapper: document.getElementById('management-wrapper')
+    };
     
     let currentPlayersData = [];
     let showingDifference = true;
     let isManagementVisible = false;
 
-    // Lógica dos Modais e Controles
-    function openInputModal() { inputModalOverlay.style.display = 'block'; controlsModal.style.display = 'block'; }
-    function closeInputModal() { inputModalOverlay.style.display = 'none'; controlsModal.style.display = 'none'; }
-    showInputModalButton.addEventListener('click', openInputModal);
-    closeInputModalButton.addEventListener('click', closeInputModal);
-    inputModalOverlay.addEventListener('click', closeInputModal);
+    // --- MODAIS E CONTROLES DE UI ---
+    function openModal(modal, overlay) { overlay.style.display = 'block'; modal.style.display = 'block'; }
+    function closeModal(modal, overlay) { overlay.style.display = 'none'; modal.style.display = 'none'; }
+    
+    elements.showInputModalButton.addEventListener('click', () => openModal(elements.controlsModal, elements.inputModalOverlay));
+    elements.closeInputModalButton.addEventListener('click', () => closeModal(elements.controlsModal, elements.inputModalOverlay));
+    elements.inputModalOverlay.addEventListener('click', () => closeModal(elements.controlsModal, elements.inputModalOverlay));
 
-    function openHistoryModal() { historyModalOverlay.style.display = 'block'; historyModal.style.display = 'block'; }
-    function closeHistoryModal() { historyModalOverlay.style.display = 'none'; historyModal.style.display = 'none'; }
-    showHistoryModalButton.addEventListener('click', openHistoryModal);
-    closeHistoryModalButton.addEventListener('click', closeHistoryModal);
-    historyModalOverlay.addEventListener('click', closeHistoryModal);
+    elements.showHistoryModalButton.addEventListener('click', () => openModal(elements.historyModal, elements.historyModalOverlay));
+    elements.closeHistoryModalButton.addEventListener('click', () => closeModal(elements.historyModal, elements.historyModalOverlay));
+    elements.historyModalOverlay.addEventListener('click', () => closeModal(elements.historyModal, elements.historyModalOverlay));
 
-    toggleManagementButton.addEventListener('click', (e) => {
+    elements.toggleManagementButton.addEventListener('click', (e) => {
         isManagementVisible = !isManagementVisible;
-        managementWrapper.style.display = isManagementVisible ? 'block' : 'none';
+        elements.managementWrapper.style.display = isManagementVisible ? 'block' : 'none';
         e.currentTarget.title = isManagementVisible ? 'Ocultar Gerenciamento' : 'Gerenciar Tabela';
     });
 
-    // Lógica Principal e de Eventos
-    processButton.addEventListener('click', async () => {
+    // --- LÓGICA PRINCIPAL DE DADOS ---
+    elements.processButton.addEventListener('click', async () => {
         showingDifference = true;
-        const combinedText = textInput1.value + '\n' + textInput2.value;
+        const combinedText = elements.textInput1.value + '\n' + elements.textInput2.value;
         if (combinedText.trim() === '') return alert('Por favor, cole o texto de pelo menos uma imagem.');
+        
         const history = await getHistory();
         const previousData = history.weeks.length > 0 ? history.weeks[history.weeks.length - 1].data : [];
         const parsedPlayers = parseOcrText(combinedText);
         currentPlayersData = comparePlayerData(parsedPlayers, previousData);
+        
         renderTable(currentPlayersData, { isHistoric: false });
-        resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
-        saveButton.disabled = false;
-        viewCurrentButton.disabled = false;
-        closeInputModal();
+        elements.resultTitle.textContent = 'Tabela de Resultados (Comparativa)';
+        elements.saveButton.disabled = false;
+        elements.viewCurrentButton.disabled = false;
+        closeModal(elements.controlsModal, elements.inputModalOverlay);
     });
     
-    saveButton.addEventListener('click', async () => {
+    elements.saveButton.addEventListener('click', async () => {
         if (currentPlayersData.length === 0) return alert('Não há dados para salvar.');
         if (confirm('Deseja salvar os dados no histórico online para todo o clã?')) {
             const history = await getHistory();
@@ -476,26 +498,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    tableOutputDiv.addEventListener('click', (event) => {
+    elements.tableOutputDiv.addEventListener('click', (event) => {
         const toggleTrigger = event.target.closest('#toggleColumnButton, .toggle-cell');
-        if (toggleTrigger) {
+        if (toggleTrigger && currentPlayersData.length > 0) {
             showingDifference = !showingDifference;
             renderTable(currentPlayersData, { isHistoric: false, showDiff: showingDifference });
         }
     });
 
-    viewHistoryButton.addEventListener('click', async () => {
-        const selectedIndex = weekSelector.value;
+    // --- LÓGICA DO HISTÓRICO ---
+    elements.viewHistoryButton.addEventListener('click', async () => {
+        const selectedIndex = elements.weekSelector.value;
         if (!selectedIndex) return;
         const history = await getHistory();
         const selectedWeek = history.weeks[selectedIndex];
         renderTable(selectedWeek.data, { isHistoric: true });
-        resultTitle.textContent = `Visualizando Semana de ${selectedWeek.date}`;
-        closeHistoryModal();
+        elements.resultTitle.textContent = `Visualizando Semana de ${selectedWeek.date}`;
+        closeModal(elements.historyModal, elements.historyModalOverlay);
     });
 
-    editDateButton.addEventListener('click', async () => {
-        const selectedIndex = weekSelector.value;
+    elements.editDateButton.addEventListener('click', async () => {
+        const selectedIndex = elements.weekSelector.value;
         if (!selectedIndex) return;
         const history = await getHistory();
         const currentWeek = history.weeks[selectedIndex];
@@ -507,12 +530,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             await historyDocRef.set(history);
             alert("Data atualizada com sucesso!");
             await populateHistoryDropdown();
-            weekSelector.value = selectedIndex;
-        } catch (error) { console.error("Erro ao editar data: ", error); alert("Ocorreu um erro ao editar a data."); }
+            elements.weekSelector.value = selectedIndex;
+        } catch (error) { console.error("Erro ao editar data: ", error); alert("Ocorreu um erro."); }
     });
 
-    deleteWeekButton.addEventListener('click', async () => {
-        const selectedIndex = weekSelector.value;
+    elements.deleteWeekButton.addEventListener('click', async () => {
+        const selectedIndex = elements.weekSelector.value;
         if (!selectedIndex) return;
         const history = await getHistory();
         const weekToDelete = history.weeks[selectedIndex];
@@ -523,47 +546,47 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert("Semana excluída com sucesso.");
                 await populateHistoryDropdown();
                 await loadLatestComparison();
-            } catch (error) { console.error("Erro ao excluir semana: ", error); alert("Ocorreu um erro ao excluir a semana."); }
+            } catch (error) { console.error("Erro ao excluir semana: ", error); alert("Ocorreu um erro."); }
         }
     });
 
-    viewCurrentButton.addEventListener('click', () => {
+    elements.viewCurrentButton.addEventListener('click', () => {
         showingDifference = true;
         if (currentPlayersData.length === 0) return alert('Nenhuma tabela da semana atual foi carregada ou gerada.');
         const isComparative = currentPlayersData[0] && currentPlayersData[0].hasOwnProperty('previousTotal');
         renderTable(currentPlayersData, { isHistoric: !isComparative });
-        resultTitle.textContent = 'Análise da Semana Mais Recente';
-        closeHistoryModal();
+        elements.resultTitle.textContent = 'Análise da Semana Mais Recente';
+        closeModal(elements.historyModal, elements.historyModalOverlay);
     });
 
-    clearHistoryButton.addEventListener('click', async () => {
+    elements.clearHistoryButton.addEventListener('click', async () => {
         if (confirm('Tem certeza que deseja apagar TODO o histórico online?')) {
             try {
                 await historyDocRef.set({ weeks: [] });
                 alert('Histórico online apagado.');
                 await populateHistoryDropdown();
-                tableOutputDiv.innerHTML = '<p>Histórico limpo. Gere uma nova tabela para começar.</p>';
-                resultTitle.textContent = 'Tabela de Resultados';
+                elements.tableOutputDiv.innerHTML = '<p>Histórico limpo. Gere uma nova tabela para começar.</p>';
+                elements.resultTitle.textContent = 'Tabela de Resultados';
             } catch (error) { console.error("Erro ao limpar histórico: ", error); alert("Ocorreu um erro."); }
         }
     });
 
     async function populateHistoryDropdown() {
         const history = await getHistory();
-        weekSelector.innerHTML = '';
-        const buttonsToToggle = [viewHistoryButton, editDateButton, deleteWeekButton, clearHistoryButton];
+        elements.weekSelector.innerHTML = '';
+        const buttonsToToggle = [elements.viewHistoryButton, elements.editDateButton, elements.deleteWeekButton, elements.clearHistoryButton];
         if (history.weeks.length > 0) {
             history.weeks.forEach((week, index) => {
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = `Semana de ${week.date} (${week.data.length} jogadores)`;
-                weekSelector.appendChild(option);
+                elements.weekSelector.appendChild(option);
             });
             buttonsToToggle.forEach(btn => btn.disabled = false);
         } else {
             const option = document.createElement('option');
             option.textContent = 'Nenhuma semana salva';
-            weekSelector.appendChild(option);
+            elements.weekSelector.appendChild(option);
             buttonsToToggle.forEach(btn => btn.disabled = true);
         }
     }
@@ -577,8 +600,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     function updateCountdown() {
         const now = new Date();
-        const targetDay = 2;
-        const targetHour = 16;
+        const { day: targetDay, hour: targetHour } = config.resetTime;
         let nextResetDate = new Date();
         nextResetDate.setHours(targetHour, 0, 0, 0);
         const daysUntilNextTuesday = (targetDay - now.getDay() + 7) % 7;
@@ -591,26 +613,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-        countdownTimer.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        elements.countdownTimer.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
     
     function comparePlayerData(currentData, previousData) {
         const previousDataMap = new Map(previousData.map(p => [p.jogador, p]));
         return currentData.map(player => {
-            const previousPlayer = previousDataMap.get(player.jogador);
+            const newPlayer = { ...player };
+            const previousPlayer = previousDataMap.get(newPlayer.jogador);
             if (previousPlayer) {
-                player.difference = parseInt(player.total) - parseInt(previousPlayer.total);
-                player.previousTotal = previousPlayer.total;
+                newPlayer.difference = parseInt(newPlayer.total) - parseInt(previousPlayer.total);
+                newPlayer.previousTotal = previousPlayer.total;
             } else {
-                player.difference = 'Novo';
+                newPlayer.difference = 'Novo';
             }
-            return player;
+            return newPlayer;
         });
     }
 
     function parseOcrText(ocrText) {
         const items = ocrText.replace(/[.,]/g, '').split(/\s+/).filter(item => item.trim() !== '');
-        const playersWithDuplicates = [];
+        let players = [];
         let currentPlayer = { jogador: '', numbers: [] };
         for (const item of items) {
             if (isNaN(parseInt(item))) {
@@ -625,7 +648,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (currentPlayer.jogador && currentPlayer.numbers.length === 3) {
                 const rawName = currentPlayer.jogador.trim();
                 const cleanedName = rawName.replace(/^[\s⭐*★]+/g, '');
-                playersWithDuplicates.push({
+                players.push({
                     jogador: cleanedName,
                     cubo: currentPlayer.numbers[0],
                     tarefas: currentPlayer.numbers[1],
@@ -636,7 +659,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         const uniquePlayers = [];
         const seenPlayers = new Map();
-        for (const player of playersWithDuplicates) {
+        for (const player of players) {
             if (!seenPlayers.has(player.jogador)) {
                 seenPlayers.set(player.jogador, true);
                 uniquePlayers.push(player);
@@ -646,7 +669,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderTable(data, options) {
-        tableOutputDiv.innerHTML = generateTableHTML(data, options);
+        elements.tableOutputDiv.innerHTML = generateTableHTML(data, options);
     }
     
     function generateTableHTML(playersData, options = {}) {
@@ -656,7 +679,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         let lastHighScorerIndex = -1;
         for (let i = playersData.length - 1; i >= 0; i--) {
-            if (playersData[i].total > 3500) {
+            if (playersData[i].total > config.highlight.highScoreThreshold) {
                 lastHighScorerIndex = i;
                 break;
             }
@@ -674,12 +697,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         playersData.forEach((player, index) => {
             let rowClasses = '';
-            if (player.total > 3500) {
+            if (player.total > config.highlight.highScoreThreshold) {
                 rowClasses += ' is-high-scorer';
                 if (index === 0) rowClasses += ' first-high-scorer';
                 if (index === lastHighScorerIndex) rowClasses += ' last-high-scorer';
             }
-            if (player.jogador === 'Awayshift' || player.jogador === 'MeganosPkz') {
+            if (config.highlight.specialPlayers.includes(player.jogador)) {
                 rowClasses += ' special-player';
             }
 
@@ -725,7 +748,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showingDifference = true;
         const history = await getHistory();
         if (history.weeks.length === 0) {
-            tableOutputDiv.innerHTML = '<p>Nenhum histórico encontrado. Insira os dados da primeira semana para começar.</p>';
+            elements.tableOutputDiv.innerHTML = '<p>Nenhum histórico encontrado. Insira os dados da primeira semana para começar.</p>';
             return;
         }
         let isComparative = false;
@@ -734,13 +757,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const previousWeekData = history.weeks[history.weeks.length - 2].data;
             currentPlayersData = comparePlayerData(latestWeekData, previousWeekData);
             isComparative = true;
-            resultTitle.textContent = 'Análise da Semana Mais Recente';
+            elements.resultTitle.textContent = 'Análise da Semana Mais Recente';
         } else {
             currentPlayersData = history.weeks[0].data;
-            resultTitle.textContent = `Visualizando a Única Semana Salva (${history.weeks[0].date})`;
+            elements.resultTitle.textContent = `Visualizando a Única Semana Salva (${history.weeks[0].date})`;
         }
         renderTable(currentPlayersData, { isHistoric: !isComparative });
-        viewCurrentButton.disabled = false;
+        elements.viewCurrentButton.disabled = false;
     }
 
     initializePage();
