@@ -218,6 +218,11 @@
         tr.special-player > td {
             background-color: #0d2f3f;
         }
+        /* Destaque para a coluna Total */
+        th:nth-child(4),
+        td:nth-child(4) {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
         tr.is-high-scorer td:first-child {
             border-left: 2px solid #f0b90b;
         }
@@ -264,6 +269,10 @@
             tr.special-player > td {
                  background-color: #0d2f3f !important;
             }
+            /* Destaque da coluna total no mobile */
+            tr td[data-label="Total"] {
+                background-color: rgba(255, 255, 255, 0.05) !important;
+            }
             table td:last-child { border-bottom: 0; }
             table td::before {
                 content: attr(data-label);
@@ -292,7 +301,7 @@
     </style>
 </head>
 <body>
-
+    
     <div id="countdown-container">
         Próximo reset em: <span id="countdownTimer">Calculando...</span>
     </div>
@@ -359,7 +368,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const db = firebase.firestore();
     const historyDocRef = db.collection("clanData").doc("history");
 
-    // --- Seleção de Elementos ---
     const showInputModalButton = document.getElementById('showInputModalButton'),
           inputModalOverlay = document.getElementById('inputModalOverlay'),
           controlsModal = document.getElementById('controls'),
@@ -385,7 +393,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentPlayersData = [];
     let showingDifference = true;
 
-    // --- LÓGICA DOS MODAIS ---
     function openInputModal() { inputModalOverlay.style.display = 'block'; controlsModal.style.display = 'block'; }
     function closeInputModal() { inputModalOverlay.style.display = 'none'; controlsModal.style.display = 'none'; }
     showInputModalButton.addEventListener('click', openInputModal);
@@ -398,7 +405,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeHistoryModalButton.addEventListener('click', closeHistoryModal);
     historyModalOverlay.addEventListener('click', closeHistoryModal);
 
-    // --- LÓGICA DE EVENTOS ---
     processButton.addEventListener('click', async () => {
         showingDifference = true;
         const combinedText = textInput1.value + '\n' + textInput2.value;
@@ -620,7 +626,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         let html = '<table><thead><tr>';
-        html += `<th>Jogador ${!isHistoric ? '<button id="toggleColumnButton" title="Alternar Visualização">&#x21C6;</button>' : ''}</th><th>Cubo</th><th>Tarefas</th><th>Total</th>`;
+        html += `<th>Jogador ${!isHistoric ? '<button id="toggleColumnButton" title="Alternar Visualização">&#x21C6;</button>' : ''}</th><th>Cubos</th><th>Tarefas</th><th>Total</th>`;
         if (!isHistoric) html += `<th>${lastColumnHeader}</th>`;
         html += '</tr></thead><tbody>';
 
