@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Tabela com Histórico - Marvel Snap</title>
+    <title>[TUG] Tortuga Snap</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐢</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap" rel="stylesheet">
@@ -18,11 +19,9 @@
             padding: 20px;
             box-sizing: border-box;
         }
-        h1, h2 {
+        h2, h3 {
             color: #f0b90b;
             font-weight: 700;
-        }
-        h2, h3 {
             text-align: center;
         }
         .modal-overlay {
@@ -206,20 +205,34 @@
         }
         .toggle-cell {
             cursor: pointer;
-            user-select: none; /* Evita que o texto seja selecionado ao clicar */
+            user-select: none;
         }
         .positive-diff {
-            color: #28a745;
-            text-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+            color: #28a745 !important;
+            text-shadow: 0 0 8px rgba(40, 167, 69, 0.7);
         }
         .negative-diff {
-            color: #dc3545;
-            text-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
+            color: #dc3545 !important;
+            text-shadow: 0 0 8px rgba(220, 53, 69, 0.7);
+        }
+        tr.special-player > td {
+            background-color: #0d2f3f;
+        }
+        tr.is-high-scorer td:first-child {
+            border-left: 2px solid #f0b90b;
+        }
+        tr.is-high-scorer td:last-child {
+            border-right: 2px solid #f0b90b;
+        }
+        tr.first-high-scorer > td {
+            border-top: 2px solid #f0b90b;
+        }
+        tr.last-high-scorer > td {
+            border-bottom: 2px solid #f0b90b;
         }
 
         @media screen and (max-width: 768px) {
             body { padding: 10px; }
-            h1 { font-size: 1.8em; }
             #main-action-container, #result-container, #actions {
                 width: 100%;
                 padding: 15px;
@@ -230,8 +243,15 @@
             table tr {
                 display: block;
                 margin-bottom: 15px;
-                border: 1px solid #30363D;
+                border: none;
                 border-radius: 6px;
+                overflow: hidden;
+            }
+            tr.is-high-scorer {
+                border: 2px solid #f0b90b;
+            }
+            tr.special-player {
+                border: 2px solid #0d2f3f;
             }
             table td {
                 display: block;
@@ -239,6 +259,10 @@
                 padding-left: 50%;
                 position: relative;
                 border-bottom: 1px dotted #21262D;
+                background-color: transparent !important;
+            }
+            tr.special-player > td {
+                 background-color: #0d2f3f !important;
             }
             table td:last-child { border-bottom: 0; }
             table td::before {
@@ -253,32 +277,67 @@
                 color: #f0b90b;
             }
             td.player-name {
-                background-color: rgba(0, 229, 255, 0.1);
+                background-color: rgba(0, 229, 255, 0.1) !important;
                 text-align: center;
                 padding-left: 12px;
                 font-size: 1.2em;
-                border-top-left-radius: 6px;
-                border-top-right-radius: 6px;
                 border-bottom: 1px solid #30363D;
             }
             td.player-name::before { display: none; }
             td.numeric-data { font-size: 1.1em; }
-            .toggle-cell { cursor: default; } /* Desativa o cursor de clique no mobile */
+            .toggle-cell { cursor: default; }
+            .positive-diff::before { color: #28a745 !important; }
+            .negative-diff::before { color: #dc3545 !important; }
         }
     </style>
 </head>
 <body>
 
-    <h1>Gerador de Dados de Clã (Marvel Snap)</h1>
-    <div id="countdown-container">Próximo reset em: <span id="countdownTimer">Calculando...</span></div>
-    <div id="main-action-container"><button id="showInputModalButton">Inserir / Atualizar Dados da Semana</button></div>
-    <div id="actions"><p>Após gerar uma nova tabela, salve-a no histórico online para o futuro.</p><button id="saveButton" disabled>Adicionar Semana ao Histórico</button></div>
-    <div id="result-container"><h2 id="resultTitle">Tabela de Resultados</h2><div id="tableOutput"><p>Carregando dados mais recentes...</p></div></div>
+    <div id="countdown-container">
+        Próximo reset em: <span id="countdownTimer">Calculando...</span>
+    </div>
+
+    <div id="main-action-container">
+        <button id="showInputModalButton">Inserir / Atualizar Dados da Semana</button>
+    </div>
+
+    <div id="actions">
+        <p>Após gerar uma nova tabela, salve-a no histórico online para o futuro.</p>
+        <button id="saveButton" disabled>Adicionar Semana ao Histórico</button>
+    </div>
+
+    <div id="result-container">
+        <h2 id="resultTitle">Tabela de Resultados</h2>
+        <div id="tableOutput">
+            <p>Carregando dados mais recentes...</p>
+        </div>
+    </div>
+    
     <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">📜</button>
+
     <div id="inputModalOverlay" class="modal-overlay"></div>
-    <div id="controls" class="modal-container"><span id="closeInputModalButton" class="close-modal-button">&times;</span><h3>Inserir Dados das Imagens</h3><p>Cole o texto das imagens nos campos abaixo.</p><textarea id="textInput1" placeholder="Texto da Imagem 1..."></textarea><textarea id="textInput2" placeholder="Texto da Imagem 2 (opcional)..."></textarea><button id="processButton">Gerar Tabela Comparativa</button></div>
+    <div id="controls" class="modal-container">
+        <span id="closeInputModalButton" class="close-modal-button">&times;</span>
+        <h3>Inserir Dados das Imagens</h3>
+        <p>Cole o texto das imagens nos campos abaixo.</p>
+        <textarea id="textInput1" placeholder="Texto da Imagem 1..."></textarea>
+        <textarea id="textInput2" placeholder="Texto da Imagem 2 (opcional)..."></textarea>
+        <button id="processButton">Gerar Tabela Comparativa</button>
+    </div>
+    
     <div id="historyModalOverlay" class="modal-overlay"></div>
-    <div id="historyModal" class="modal-container"><span id="closeHistoryModalButton" class="close-modal-button">&times;</span><h2>Histórico de Semanas</h2><p>Selecione uma semana para gerenciar.</p><select id="weekSelector"></select><button id="viewHistoryButton" disabled>Visualizar Semana</button><button id="editDateButton" disabled>Editar Data</button><button id="deleteWeekButton" disabled>Excluir Semana</button><hr style="border-color: #30363D; margin: 20px 0;"><button id="viewCurrentButton" disabled>Voltar à Semana Atual</button><button id="clearHistoryButton" disabled>Limpar Todo o Histórico</button></div>
+    <div id="historyModal" class="modal-container">
+        <span id="closeHistoryModalButton" class="close-modal-button">&times;</span>
+        <h2>Histórico de Semanas</h2>
+        <p>Selecione uma semana para gerenciar.</p>
+        <select id="weekSelector"></select>
+        <button id="viewHistoryButton" disabled>Visualizar Semana</button>
+        <button id="editDateButton" disabled>Editar Data</button>
+        <button id="deleteWeekButton" disabled>Excluir Semana</button>
+        <hr style="border-color: #30363D; margin: 20px 0;">
+        <button id="viewCurrentButton" disabled>Voltar à Semana Atual</button>
+        <button id="clearHistoryButton" disabled>Limpar Todo o Histórico</button>
+    </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -300,7 +359,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const db = firebase.firestore();
     const historyDocRef = db.collection("clanData").doc("history");
 
-    // Seleção de Elementos
+    // --- Seleção de Elementos ---
     const showInputModalButton = document.getElementById('showInputModalButton'),
           inputModalOverlay = document.getElementById('inputModalOverlay'),
           controlsModal = document.getElementById('controls'),
@@ -326,7 +385,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentPlayersData = [];
     let showingDifference = true;
 
-    // Lógica dos Modais
+    // --- LÓGICA DOS MODAIS ---
     function openInputModal() { inputModalOverlay.style.display = 'block'; controlsModal.style.display = 'block'; }
     function closeInputModal() { inputModalOverlay.style.display = 'none'; controlsModal.style.display = 'none'; }
     showInputModalButton.addEventListener('click', openInputModal);
@@ -339,7 +398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeHistoryModalButton.addEventListener('click', closeHistoryModal);
     historyModalOverlay.addEventListener('click', closeHistoryModal);
 
-    // Lógica Principal e de Eventos
+    // --- LÓGICA DE EVENTOS ---
     processButton.addEventListener('click', async () => {
         showingDifference = true;
         const combinedText = textInput1.value + '\n' + textInput2.value;
@@ -547,6 +606,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (playersData.length === 0) return '<p>Nenhum dado de jogador válido foi encontrado.</p>';
         playersData.sort((a, b) => (b.total || 0) - (a.total || 0));
         
+        let lastHighScorerIndex = -1;
+        for (let i = playersData.length - 1; i >= 0; i--) {
+            if (playersData[i].total > 3500) {
+                lastHighScorerIndex = i;
+                break;
+            }
+        }
+
         let lastColumnHeader = '';
         if (!isHistoric) {
             lastColumnHeader = showDiff ? 'Diferença' : 'Pont. Anterior';
@@ -557,8 +624,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!isHistoric) html += `<th>${lastColumnHeader}</th>`;
         html += '</tr></thead><tbody>';
 
-        for (const player of playersData) {
-            html += `<tr>
+        playersData.forEach((player, index) => {
+            let rowClasses = '';
+            if (player.total > 3500) {
+                rowClasses += ' is-high-scorer';
+                if (index === 0) rowClasses += ' first-high-scorer';
+                if (index === lastHighScorerIndex) rowClasses += ' last-high-scorer';
+            }
+            if (player.jogador === 'Awayshift' || player.jogador === 'MeganosPkz') {
+                rowClasses += ' special-player';
+            }
+
+            html += `<tr class="${rowClasses.trim()}">
                         <td data-label="Jogador" class="player-name">${player.jogador}</td>
                         <td data-label="Cubo" class="numeric-data">${player.cubo || 0}</td>
                         <td data-label="Tarefas" class="numeric-data">${player.tarefas || 0}</td>
@@ -584,7 +661,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 html += lastColumnHtml;
             }
             html += '</tr>';
-        }
+        });
         html += '</tbody></table>';
         return html;
     }
