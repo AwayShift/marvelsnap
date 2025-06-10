@@ -18,11 +18,16 @@
             align-items: center;
             padding: 20px;
             box-sizing: border-box;
+            margin: 0;
         }
         h2, h3 {
             color: #f0b90b;
             font-weight: 700;
             text-align: center;
+        }
+        #app-wrapper {
+            width: 100%;
+            max-width: 800px;
         }
         .modal-overlay {
             display: none;
@@ -62,21 +67,21 @@
         }
         #countdown-container {
             color: #E6EDF3;
-            background-color: #161B22;
             padding: 10px 20px;
-            border-radius: 6px;
-            border: 1px solid #30363D;
             margin-bottom: 20px;
             font-size: 1.1em;
             text-align: center;
+            box-sizing: border-box;
         }
         #countdownTimer {
             color: #00E5FF;
             font-weight: 700;
         }
+        #toggle-management-container {
+            margin-bottom: 10px;
+            text-align: left;
+        }
         #main-action-container, #result-container, #actions {
-            width: 100%;
-            max-width: 800px;
             box-sizing: border-box;
             background-color: #161B22;
             padding: 25px;
@@ -112,7 +117,7 @@
             display: block;
             width: 100%;
             margin-top: 10px;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, background-color 0.3s;
         }
         button:hover {
             transform: scale(1.02);
@@ -121,6 +126,21 @@
             background: #555;
             cursor: not-allowed;
             transform: none;
+        }
+        #toggleManagementButton {
+            background: #161B22;
+            border: 1px solid #30363D;
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            font-size: 24px;
+            color: #d1d1cf;
+            padding: 8px;
+            margin: 0;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         #saveButton {
             background: linear-gradient(90deg, #28a745, #20c997);
@@ -218,7 +238,6 @@
         tr.special-player > td {
             background-color: #0d2f3f;
         }
-        /* Destaque para a coluna Total */
         th:nth-child(4),
         td:nth-child(4) {
             background-color: rgba(255, 255, 255, 0.05);
@@ -237,7 +256,6 @@
         }
 
         @media screen and (max-width: 768px) {
-            body { padding: 10px; }
             #main-action-container, #result-container, #actions {
                 width: 100%;
                 padding: 15px;
@@ -269,7 +287,6 @@
             tr.special-player > td {
                  background-color: #0d2f3f !important;
             }
-            /* Destaque da coluna total no mobile */
             tr td[data-label="Total"] {
                 background-color: rgba(255, 255, 255, 0.05) !important;
             }
@@ -302,39 +319,45 @@
 </head>
 <body>
     
-    <div id="countdown-container">
-        Próximo reset em: <span id="countdownTimer">Calculando...</span>
+    <div id="app-wrapper">
+        <div id="countdown-container">
+            Próximo reset em: <span id="countdownTimer">Calculando...</span>
+        </div>
+
+    <div id="toggle-management-container">
+        <button id="toggleManagementButton" title="Gerenciar Tabela">☰</button>
     </div>
 
-    <div id="main-action-container">
-        <button id="showInputModalButton">Inserir / Atualizar Dados da Semana</button>
-    </div>
+        <div id="management-wrapper" style="display: none;">
+            <div id="main-action-container">
+                <button id="showInputModalButton">Inserir / Atualizar Dados da Semana</button>
+            </div>
+            <div id="actions">
+                <p>Após gerar uma nova tabela, salve-a no histórico online para o futuro.</p>
+                <button id="saveButton" disabled>Adicionar Semana ao Histórico</button>
+            </div>
+        </div>
 
-    <div id="actions">
-        <p>Após gerar uma nova tabela, salve-a no histórico online para o futuro.</p>
-        <button id="saveButton" disabled>Adicionar Semana ao Histórico</button>
-    </div>
-
-    <div id="result-container">
-        <h2 id="resultTitle">Tabela de Resultados</h2>
-        <div id="tableOutput">
-            <p>Carregando dados mais recentes...</p>
+        <div id="result-container">
+            <h2 id="resultTitle">Tabela de Resultados</h2>
+            <div id="tableOutput">
+                <p>Carregando dados mais recentes...</p>
+            </div>
         </div>
     </div>
     
-    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">🗓️ </button>
+    <button id="showHistoryModalButton" class="fab" title="Ver Histórico de Semanas">🗓️</button>
 
     <div id="inputModalOverlay" class="modal-overlay"></div>
     <div id="controls" class="modal-container">
         <span id="closeInputModalButton" class="close-modal-button">&times;</span>
         <h3>Inserir Dados das Imagens</h3>
-             <p style="text-align: center; margin-bottom: 20px;">
-            Use o site de OCR para extrair o texto da imagem:
+        <p style="text-align: center; margin-bottom: 20px;">
+            Não tem o texto? Use um site de OCR para extrair:
             <br>
             <a href="https://www.i2ocr.com/free-online-portuguese-ocr" target="_blank" rel="noopener noreferrer" style="color: #f0b90b; font-weight: bold;">
                 Acessar i2OCR (Português)
             </a>
-        <p>Cole o texto das imagens nos campos abaixo.</p>
         </p>
         <textarea id="textInput1" placeholder="Texto da Imagem 1..."></textarea>
         <textarea id="textInput2" placeholder="Texto da Imagem 2 (opcional)..."></textarea>
@@ -375,6 +398,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const db = firebase.firestore();
     const historyDocRef = db.collection("clanData").doc("history");
 
+    // Seleção de Elementos
     const showInputModalButton = document.getElementById('showInputModalButton'),
           inputModalOverlay = document.getElementById('inputModalOverlay'),
           controlsModal = document.getElementById('controls'),
@@ -395,11 +419,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           editDateButton = document.getElementById('editDateButton'),
           deleteWeekButton = document.getElementById('deleteWeekButton'),
           viewCurrentButton = document.getElementById('viewCurrentButton'),
-          clearHistoryButton = document.getElementById('clearHistoryButton');
+          clearHistoryButton = document.getElementById('clearHistoryButton'),
+          toggleManagementButton = document.getElementById('toggleManagementButton'),
+          managementWrapper = document.getElementById('management-wrapper');
     
     let currentPlayersData = [];
     let showingDifference = true;
+    let isManagementVisible = false;
 
+    // Lógica dos Modais e Controles
     function openInputModal() { inputModalOverlay.style.display = 'block'; controlsModal.style.display = 'block'; }
     function closeInputModal() { inputModalOverlay.style.display = 'none'; controlsModal.style.display = 'none'; }
     showInputModalButton.addEventListener('click', openInputModal);
@@ -412,6 +440,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     closeHistoryModalButton.addEventListener('click', closeHistoryModal);
     historyModalOverlay.addEventListener('click', closeHistoryModal);
 
+    toggleManagementButton.addEventListener('click', (e) => {
+        isManagementVisible = !isManagementVisible;
+        managementWrapper.style.display = isManagementVisible ? 'block' : 'none';
+        e.currentTarget.title = isManagementVisible ? 'Ocultar Gerenciamento' : 'Gerenciar Tabela';
+    });
+
+    // Lógica Principal e de Eventos
     processButton.addEventListener('click', async () => {
         showingDifference = true;
         const combinedText = textInput1.value + '\n' + textInput2.value;
@@ -633,7 +668,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         let html = '<table><thead><tr>';
-        html += `<th>Jogador ${!isHistoric ? '<button id="toggleColumnButton" title="Alternar Visualização">&#x21C6;</button>' : ''}</th><th>Cubos</th><th>Tarefas</th><th>Total</th>`;
+        html += `<th>Jogador ${!isHistoric ? '<button id="toggleColumnButton" title="Alternar Visualização">&#x21C6;</button>' : ''}</th><th>Cubo</th><th>Tarefas</th><th>Total</th>`;
         if (!isHistoric) html += `<th>${lastColumnHeader}</th>`;
         html += '</tr></thead><tbody>';
 
