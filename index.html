@@ -308,6 +308,87 @@
             text-align: center;
             word-break: break-all;
         }
+        
+        /* --- ESTILOS DO CALENDÁRIO --- */
+        #calendar-container {
+            margin-top: 20px;
+            user-select: none;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        #month-year-display {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #f0b90b;
+        }
+        .nav-btn {
+            background: none;
+            border: 1px solid #30363D;
+            color: #E6EDF3;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5em;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+        }
+        .nav-btn:hover {
+            background-color: #30363D;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        .calendar-day, .calendar-day-header {
+            text-align: center;
+            padding: 10px 5px;
+        }
+        .calendar-day-header {
+            font-weight: bold;
+            color: #00E5FF;
+            font-size: 0.9em;
+        }
+        .calendar-day {
+            border-radius: 4px;
+            color: #aaa;
+        }
+        .day-in-month {
+             color: #E6EDF3;
+        }
+        .day-has-data {
+            background-color: #0d2f3f;
+            border: 1px solid #00E5FF;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+        .day-has-data:hover {
+            background-color: #00E5FF;
+            color: #0D1117;
+        }
+         .day-has-data::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: #f0b90b;
+        }
+        .day-selected {
+            background-color: #f0b90b !important;
+            color: #0D1117 !important;
+            font-weight: bold;
+        }
 
         @media screen and (max-width: 768px) {
             body { padding: 10px; }
@@ -436,15 +517,20 @@
     <div id="historyModal" class="modal-container">
         <span id="closeHistoryModalButton" class="close-modal-button">&times;</span>
         <h2>Histórico de Semanas</h2>
-        <p>Selecione uma semana para gerenciar.</p>
-        <select id="weekSelector"></select>
-        <button id="viewHistoryButton" disabled>Visualizar Semana</button>
-        <button id="editDateButton" disabled>Editar Data</button>
-        <button id="deleteWeekButton" disabled>Excluir Semana</button>
-        <hr style="border-color: #30363D; margin: 20px 0;">
-        <button id="viewCurrentButton" disabled>Voltar à Semana Atual</button>
-        <button id="clearHistoryButton" disabled>Limpar Todo o Histórico</button>
+        <p>Selecione uma data no calendário para visualizar ou gerenciar.</p>
+        
+        <div id="calendar-container">
+            </div>
+        
+        <div id="history-actions" style="margin-top: 20px;">
+            <button id="editDateButton" disabled>Editar Data Selecionada</button>
+            <button id="deleteWeekButton" disabled>Excluir Semana Selecionada</button>
+            <hr style="border-color: #30363D; margin: 20px 0;">
+            <button id="viewCurrentButton" disabled>Voltar à Semana Atual</button>
+            <button id="clearHistoryButton" disabled>Limpar Todo o Histórico</button>
+        </div>
     </div>
+
 
     <div id="adminModalOverlay" class="modal-overlay"></div>
     <div id="adminModal" class="modal-container">
@@ -508,8 +594,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tableOutputDiv: document.getElementById('tableOutput'),
         resultTitle: document.getElementById('resultTitle'),
         countdownTimer: document.getElementById('countdownTimer'),
-        weekSelector: document.getElementById('weekSelector'),
-        viewHistoryButton: document.getElementById('viewHistoryButton'),
+        calendarContainer: document.getElementById('calendar-container'),
         editDateButton: document.getElementById('editDateButton'),
         deleteWeekButton: document.getElementById('deleteWeekButton'),
         viewCurrentButton: document.getElementById('viewCurrentButton'),
@@ -530,6 +615,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     let showingDifference = true;
     let isManagementVisible = false;
     let isAdmin = false;
+    let calendarState = {
+        currentDate: new Date(),
+        selectedWeekIndex: null
+    };
 
     // --- MODAIS E CONTROLES DE UI ---
     function openModal(modal, overlay) { overlay.style.display = 'block'; modal.style.display = 'block'; }
@@ -539,7 +628,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     elements.closeInputModalButton.addEventListener('click', () => closeModal(elements.controlsModal, elements.inputModalOverlay));
     elements.inputModalOverlay.addEventListener('click', () => closeModal(elements.controlsModal, elements.inputModalOverlay));
 
-    elements.showHistoryModalButton.addEventListener('click', () => openModal(elements.historyModal, elements.historyModalOverlay));
+    elements.showHistoryModalButton.addEventListener('click', async () => {
+        openModal(elements.historyModal, elements.historyModalOverlay);
+        await populateHistoryCalendar();
+    });
     elements.closeHistoryModalButton.addEventListener('click', () => closeModal(elements.historyModal, elements.historyModalOverlay));
     elements.historyModalOverlay.addEventListener('click', () => closeModal(elements.historyModal, elements.historyModalOverlay));
     
@@ -564,9 +656,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     function setAdmin(status) {
         isAdmin = status;
         elements.saveButton.disabled = !isAdmin || currentPlayersData.length === 0;
-        elements.editDateButton.disabled = !isAdmin;
-        elements.deleteWeekButton.disabled = !isAdmin;
         elements.clearHistoryButton.disabled = !isAdmin;
+        // Edit/delete buttons are handled by calendar selection
+        if (calendarState.selectedWeekIndex === null) {
+            elements.editDateButton.disabled = true;
+            elements.deleteWeekButton.disabled = true;
+        } else {
+            elements.editDateButton.disabled = !isAdmin;
+            elements.deleteWeekButton.disabled = !isAdmin;
+        }
 
         if (isAdmin) {
             elements.adminLoginButton.innerHTML = icons.unlock;
@@ -644,7 +742,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 await historyDocRef.set(history);
                 alert(`Dados da semana de ${today} salvos com sucesso!`);
-                await populateHistoryDropdown();
             } catch (error) { console.error("Erro ao salvar: ", error); alert("Ocorreu um erro ao salvar."); }
         }
     });
@@ -657,48 +754,137 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- LÓGICA DO HISTÓRICO ---
-    elements.viewHistoryButton.addEventListener('click', async () => {
-        const selectedIndex = elements.weekSelector.value;
-        if (selectedIndex === null || selectedIndex === '') return;
+    // --- LÓGICA DO HISTÓRICO E CALENDÁRIO ---
+    async function populateHistoryCalendar() {
         const history = await getHistory();
-        const selectedWeek = history.weeks[selectedIndex];
-        renderTable(selectedWeek.data, { isHistoric: true });
-        elements.resultTitle.textContent = `Visualizando Semana de ${selectedWeek.date}`;
-        closeModal(elements.historyModal, elements.historyModalOverlay);
-    });
+        const hasHistory = history.weeks.length > 0;
+
+        elements.clearHistoryButton.disabled = !isAdmin || !hasHistory;
+        
+        const markedDates = history.weeks.map(week => ({
+            dateStr: week.date,
+            index: history.weeks.indexOf(week)
+        }));
+
+        renderCalendar(calendarState.currentDate.getFullYear(), calendarState.currentDate.getMonth(), markedDates);
+    }
+
+    function renderCalendar(year, month, markedDates) {
+        const container = elements.calendarContainer;
+        const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        let html = `
+            <div class="calendar-header">
+                <button class="nav-btn" id="prev-month-btn">&lt;</button>
+                <span id="month-year-display">${monthNames[month]} ${year}</span>
+                <button class="nav-btn" id="next-month-btn">&gt;</button>
+            </div>
+            <div class="calendar-grid">
+        `;
+        
+        dayNames.forEach(day => {
+            html += `<div class="calendar-day-header">${day}</div>`;
+        });
+
+        for (let i = 0; i < firstDay; i++) {
+            html += `<div class="calendar-day"></div>`;
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${String(day).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${year}`;
+            const markedDate = markedDates.find(d => d.dateStr === dateStr);
+            let classes = "calendar-day day-in-month";
+            let dataAttr = "";
+
+            if (markedDate) {
+                classes += " day-has-data";
+                dataAttr = `data-week-index="${markedDate.index}"`;
+            }
+            if (markedDate && markedDate.index === calendarState.selectedWeekIndex) {
+                 classes += " day-selected";
+            }
+
+            html += `<div class="${classes}" ${dataAttr}>${day}</div>`;
+        }
+        
+        html += `</div></div>`;
+        container.innerHTML = html;
+        
+        document.getElementById('prev-month-btn').addEventListener('click', () => {
+            calendarState.currentDate.setMonth(calendarState.currentDate.getMonth() - 1);
+            populateHistoryCalendar();
+        });
+        
+        document.getElementById('next-month-btn').addEventListener('click', () => {
+            calendarState.currentDate.setMonth(calendarState.currentDate.getMonth() + 1);
+            populateHistoryCalendar();
+        });
+
+        container.querySelectorAll('.day-has-data').forEach(dayCell => {
+            dayCell.addEventListener('click', async (e) => {
+                const selectedIndex = parseInt(e.currentTarget.dataset.weekIndex);
+                calendarState.selectedWeekIndex = selectedIndex;
+
+                const history = await getHistory();
+                const selectedWeek = history.weeks[selectedIndex];
+                
+                renderTable(selectedWeek.data, { isHistoric: true });
+                elements.resultTitle.textContent = `Visualizando Semana de ${selectedWeek.date}`;
+                
+                if (isAdmin) {
+                    elements.editDateButton.disabled = false;
+                    elements.deleteWeekButton.disabled = false;
+                }
+                
+                // Re-render calendar to show selection and close modal
+                populateHistoryCalendar();
+                closeModal(elements.historyModal, elements.historyModalOverlay);
+            });
+        });
+    }
 
     elements.editDateButton.addEventListener('click', async () => {
         if (!isAdmin) return alert('Apenas administradores podem editar a data.');
-        const selectedIndex = elements.weekSelector.value;
-        if (selectedIndex === null || selectedIndex === '') return;
+        const selectedIndex = calendarState.selectedWeekIndex;
+        if (selectedIndex === null) return alert("Nenhuma semana selecionada.");
+
         const history = await getHistory();
         const currentWeek = history.weeks[selectedIndex];
         const newDate = prompt(`Digite a nova data para a semana de "${currentWeek.date}" (DD/MM/AAAA):`, currentWeek.date);
+        
         if (newDate === null || newDate.trim() === '') return;
         if (!/^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) return alert("Formato de data inválido. Use DD/MM/AAAA.");
+        
         history.weeks[selectedIndex].date = newDate;
         try {
             await historyDocRef.set(history);
             alert("Data atualizada com sucesso!");
-            await populateHistoryDropdown();
-            elements.weekSelector.value = selectedIndex;
+            await populateHistoryCalendar(); // Refresh calendar view
         } catch (error) { console.error("Erro ao editar data: ", error); alert("Ocorreu um erro."); }
     });
 
     elements.deleteWeekButton.addEventListener('click', async () => {
         if (!isAdmin) return alert('Apenas administradores podem excluir semanas.');
-        const selectedIndex = elements.weekSelector.value;
-        if (selectedIndex === null || selectedIndex === '') return;
+        const selectedIndex = calendarState.selectedWeekIndex;
+        if (selectedIndex === null) return alert("Nenhuma semana selecionada.");
+
         const history = await getHistory();
         const weekToDelete = history.weeks[selectedIndex];
+        
         if (confirm(`Tem certeza que deseja EXCLUIR a semana de ${weekToDelete.date}?`)) {
             history.weeks.splice(selectedIndex, 1);
             try {
                 await historyDocRef.set(history);
                 alert("Semana excluída com sucesso.");
-                await populateHistoryDropdown();
-                await loadLatestComparison();
+                calendarState.selectedWeekIndex = null; // Reset selection
+                elements.editDateButton.disabled = true;
+                elements.deleteWeekButton.disabled = true;
+                await populateHistoryCalendar();
+                await loadLatestComparison(); // Reload main table
             } catch (error) { console.error("Erro ao excluir semana: ", error); alert("Ocorreu um erro."); }
         }
     });
@@ -718,42 +904,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 await historyDocRef.set({ weeks: [] });
                 alert('Histórico online apagado.');
-                await populateHistoryDropdown();
+                calendarState.selectedWeekIndex = null;
+                elements.editDateButton.disabled = true;
+                elements.deleteWeekButton.disabled = true;
+                await populateHistoryCalendar();
                 elements.tableOutputDiv.innerHTML = '<p>Histórico limpo. Gere uma nova tabela para começar.</p>';
                 elements.resultTitle.textContent = 'Tabela de Resultados';
             } catch (error) { console.error("Erro ao limpar histórico: ", error); alert("Ocorreu um erro."); }
         }
     });
-
-    async function populateHistoryDropdown() {
-        const history = await getHistory();
-        elements.weekSelector.innerHTML = '';
-        const hasHistory = history.weeks.length > 0;
-        
-        elements.viewHistoryButton.disabled = !hasHistory;
-        if (!isAdmin) {
-             elements.editDateButton.disabled = true;
-             elements.deleteWeekButton.disabled = true;
-             elements.clearHistoryButton.disabled = true;
-        } else {
-             elements.editDateButton.disabled = !hasHistory;
-             elements.deleteWeekButton.disabled = !hasHistory;
-             elements.clearHistoryButton.disabled = !hasHistory;
-        }
-
-        if (hasHistory) {
-            history.weeks.forEach((week, index) => {
-                const option = document.createElement('option');
-                option.value = index;
-                option.textContent = `Semana de ${week.date} (${week.data.length} jogadores)`;
-                elements.weekSelector.appendChild(option);
-            });
-        } else {
-            const option = document.createElement('option');
-            option.textContent = 'Nenhuma semana salva';
-            elements.weekSelector.appendChild(option);
-        }
-    }
 
     async function getHistory() {
         try {
@@ -912,7 +1071,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function initializePage() {
-        await populateHistoryDropdown();
         updateCountdown();
         setInterval(updateCountdown, 1000);
         await loadLatestComparison();
