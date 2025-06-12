@@ -236,6 +236,11 @@
         }
         td.player-name {
             font-weight: 700;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        td.player-name:hover {
+            color: #f0b90b;
         }
         td.numeric-data {
             color: #00E5FF;
@@ -390,6 +395,54 @@
             font-weight: bold;
         }
 
+        /* --- ESTILOS DO HISTÓRICO INDIVIDUAL (COMPACTO) --- */
+        #playerHistoryModal {
+            flex-direction: column;
+            max-height: 85vh;
+        }
+        #playerHistoryTitle {
+            margin-bottom: 10px;
+        }
+        #playerHistoryFilters {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+            flex-shrink: 0;
+        }
+        .filter-btn {
+            width: auto;
+            display: inline-block;
+            margin: 0;
+            padding: 8px 16px;
+            background: #161B22;
+            border: 1px solid #30363D;
+        }
+        .filter-btn.active {
+            background: #007BFF;
+            border-color: #007BFF;
+        }
+        #playerHistoryContent {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        #playerHistoryModal table th,
+        #playerHistoryModal table td {
+            padding: 10px 12px;
+            font-size: 0.9em;
+        }
+        #playerHistoryPagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            flex-shrink: 0;
+        }
+        #playerHistoryPagination button {
+            width: 100px;
+            margin: 0;
+        }
+
         @media screen and (max-width: 768px) {
             body { padding: 10px; }
             #main-action-container, #result-container, #actions {
@@ -519,8 +572,7 @@
         <h2>Histórico de Semanas</h2>
         <p>Selecione uma data no calendário para visualizar ou gerenciar.</p>
         
-        <div id="calendar-container">
-            </div>
+        <div id="calendar-container"></div>
         
         <div id="history-actions" style="margin-top: 20px;">
             <button id="editDateButton" disabled>Editar Data Selecionada</button>
@@ -531,13 +583,26 @@
         </div>
     </div>
 
-
     <div id="adminModalOverlay" class="modal-overlay"></div>
     <div id="adminModal" class="modal-container">
         <span id="closeAdminModalButton" class="close-modal-button">&times;</span>
         <h3>Login de Administrador</h3>
         <input type="password" id="adminPasswordInput" placeholder="Digite a senha...">
         <button id="submitAdminPasswordButton">Entrar</button>
+    </div>
+
+    <div id="playerHistoryModalOverlay" class="modal-overlay"></div>
+    <div id="playerHistoryModal" class="modal-container">
+        <span id="closePlayerHistoryModalButton" class="close-modal-button">&times;</span>
+        <h3 id="playerHistoryTitle">Histórico do Jogador</h3>
+        <div id="playerHistoryFilters">
+            <button class="filter-btn" data-weeks="3">Últimas 3</button>
+            <button class="filter-btn" data-weeks="5">Últimas 5</button>
+            <button class="filter-btn" data-weeks="10">Últimas 10</button>
+            <button class="filter-btn active" data-weeks="all">Todas</button>
+        </div>
+        <div id="playerHistoryContent"></div>
+        <div id="playerHistoryPagination"></div>
     </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -608,7 +673,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         adminPasswordInput: document.getElementById('adminPasswordInput'),
         submitAdminPasswordButton: document.getElementById('submitAdminPasswordButton'),
         toggleExample: document.getElementById('toggleExample'),
-        formatExample: document.getElementById('formatExample')
+        formatExample: document.getElementById('formatExample'),
+        playerHistoryModalOverlay: document.getElementById('playerHistoryModalOverlay'),
+        playerHistoryModal: document.getElementById('playerHistoryModal'),
+        closePlayerHistoryModalButton: document.getElementById('closePlayerHistoryModalButton'),
+        playerHistoryTitle: document.getElementById('playerHistoryTitle'),
+        playerHistoryFilters: document.getElementById('playerHistoryFilters'),
+        playerHistoryContent: document.getElementById('playerHistoryContent'),
+        playerHistoryPagination: document.getElementById('playerHistoryPagination')
     };
     
     let currentPlayersData = [];
@@ -638,6 +710,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     elements.closeAdminModalButton.addEventListener('click', () => closeModal(elements.adminModal, elements.adminModalOverlay));
     elements.adminModalOverlay.addEventListener('click', () => closeModal(elements.adminModal, elements.adminModalOverlay));
 
+    elements.closePlayerHistoryModalButton.addEventListener('click', () => closeModal(elements.playerHistoryModal, elements.playerHistoryModalOverlay));
+    elements.playerHistoryModalOverlay.addEventListener('click', () => closeModal(elements.playerHistoryModal, elements.playerHistoryModalOverlay));
+
     elements.toggleManagementButton.addEventListener('click', (e) => {
         isManagementVisible = !isManagementVisible;
         elements.managementWrapper.style.display = isManagementVisible ? 'block' : 'none';
@@ -657,7 +732,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         isAdmin = status;
         elements.saveButton.disabled = !isAdmin || currentPlayersData.length === 0;
         elements.clearHistoryButton.disabled = !isAdmin;
-        // Edit/delete buttons are handled by calendar selection
         if (calendarState.selectedWeekIndex === null) {
             elements.editDateButton.disabled = true;
             elements.deleteWeekButton.disabled = true;
@@ -665,7 +739,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             elements.editDateButton.disabled = !isAdmin;
             elements.deleteWeekButton.disabled = !isAdmin;
         }
-
         if (isAdmin) {
             elements.adminLoginButton.innerHTML = icons.unlock;
             elements.adminLoginButton.title = 'Sair do modo Administrador';
@@ -702,7 +775,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert('Não foi possível verificar a senha.');
         }
     });
-
 
     // --- LÓGICA PRINCIPAL DE DADOS ---
     elements.processButton.addEventListener('click', async () => {
@@ -746,11 +818,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    elements.tableOutputDiv.addEventListener('click', (event) => {
-        const toggleTrigger = event.target.closest('#toggleColumnButton, .toggle-cell');
+    elements.tableOutputDiv.addEventListener('click', async (event) => {
+        const toggleTrigger = event.target.closest('.toggle-cell');
         if (toggleTrigger && currentPlayersData.length > 0) {
             showingDifference = !showingDifference;
             renderTable(currentPlayersData, { isHistoric: false, showDiff: showingDifference });
+            return;
+        }
+        
+        const playerCell = event.target.closest('.player-name');
+        if (playerCell) {
+            const playerName = playerCell.textContent.trim();
+            if (playerName && playerName.length > 0) {
+                await handlePlayerHistoryClick(playerName);
+            }
         }
     });
 
@@ -840,7 +921,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     elements.deleteWeekButton.disabled = false;
                 }
                 
-                // Re-render calendar to show selection and close modal
                 populateHistoryCalendar();
                 closeModal(elements.historyModal, elements.historyModalOverlay);
             });
@@ -863,7 +943,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             await historyDocRef.set(history);
             alert("Data atualizada com sucesso!");
-            await populateHistoryCalendar(); // Refresh calendar view
+            await populateHistoryCalendar();
         } catch (error) { console.error("Erro ao editar data: ", error); alert("Ocorreu um erro."); }
     });
 
@@ -880,11 +960,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 await historyDocRef.set(history);
                 alert("Semana excluída com sucesso.");
-                calendarState.selectedWeekIndex = null; // Reset selection
+                calendarState.selectedWeekIndex = null;
                 elements.editDateButton.disabled = true;
                 elements.deleteWeekButton.disabled = true;
                 await populateHistoryCalendar();
-                await loadLatestComparison(); // Reload main table
+                await loadLatestComparison();
             } catch (error) { console.error("Erro ao excluir semana: ", error); alert("Ocorreu um erro."); }
         }
     });
@@ -914,6 +994,117 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // --- LÓGICA DO HISTÓRICO INDIVIDUAL E PAGINAÇÃO ---
+    async function handlePlayerHistoryClick(playerName) {
+        const history = await getHistory();
+        if (!history || history.weeks.length === 0) {
+            alert("Nenhum histórico encontrado para pesquisar.");
+            return;
+        }
+
+        const playerData = getPlayerHistory(playerName, history.weeks);
+        
+        if (playerData.length === 0) {
+            alert(`Nenhum registro encontrado para o jogador ${playerName}.`);
+            return;
+        }
+
+        elements.playerHistoryTitle.textContent = `Histórico de: ${playerName}`;
+        
+        const newFilters = elements.playerHistoryFilters.cloneNode(true);
+        elements.playerHistoryFilters.parentNode.replaceChild(newFilters, elements.playerHistoryFilters);
+        elements.playerHistoryFilters = newFilters;
+        
+        elements.playerHistoryFilters.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => renderPlayerHistoryContent(playerData, btn.dataset.weeks, 1));
+        });
+
+        renderPlayerHistoryContent(playerData, 'all', 1);
+
+        elements.playerHistoryModalOverlay.style.display = 'block';
+        elements.playerHistoryModal.style.display = 'flex';
+    }
+
+    function getPlayerHistory(playerName, weeks) {
+        const playerData = [];
+        for (let i = weeks.length - 1; i >= 0; i--) {
+            const week = weeks[i];
+            const player = week.data.find(p => p.jogador === playerName);
+            if (player) {
+                playerData.push({ date: week.date, total: player.total });
+            }
+        }
+        return playerData;
+    }
+
+    function renderPlayerHistoryContent(playerData, filter, page = 1) {
+        const itemsPerPage = 10;
+        let dataToDisplay;
+
+        elements.playerHistoryPagination.innerHTML = '';
+
+        if (filter !== 'all') {
+            dataToDisplay = playerData.slice(0, parseInt(filter));
+        } else {
+            if (playerData.length > itemsPerPage) {
+                const totalPages = Math.ceil(playerData.length / itemsPerPage);
+                const start = (page - 1) * itemsPerPage;
+                dataToDisplay = playerData.slice(start, start + itemsPerPage);
+
+                const prevDisabled = page === 1 ? 'disabled' : '';
+                const nextDisabled = page === totalPages ? 'disabled' : '';
+
+                elements.playerHistoryPagination.innerHTML = `
+                    <button id="player-hist-prev" ${prevDisabled}>Anterior</button>
+                    <span>Página ${page} de ${totalPages}</span>
+                    <button id="player-hist-next" ${nextDisabled}>Próxima</button>
+                `;
+
+                document.getElementById('player-hist-prev')?.addEventListener('click', () => renderPlayerHistoryContent(playerData, 'all', page - 1));
+                document.getElementById('player-hist-next')?.addEventListener('click', () => renderPlayerHistoryContent(playerData, 'all', page + 1));
+            } else {
+                dataToDisplay = playerData;
+            }
+        }
+
+        if (dataToDisplay.length === 0) {
+            elements.playerHistoryContent.innerHTML = "<p>Nenhum registro para este filtro.</p>";
+            return;
+        }
+
+        let html = '<table><thead><tr><th>Data</th><th>Pontuação</th><th>Variação</th></tr></thead><tbody>';
+        
+        for (let i = 0; i < dataToDisplay.length; i++) {
+            const currentEntry = dataToDisplay[i];
+            const originalIndex = playerData.findIndex(p => p.date === currentEntry.date && p.total === currentEntry.total);
+            const previousEntry = playerData[originalIndex + 1];
+            
+            let diffHtml = '-';
+            if (previousEntry) {
+                const diff = currentEntry.total - previousEntry.total;
+                const sign = diff > 0 ? '+' : '';
+                const diffClass = diff > 0 ? 'positive-diff' : (diff < 0 ? 'negative-diff' : '');
+                diffHtml = `<span class="${diffClass}">${sign}${diff}</span>`;
+            }
+
+            html += `
+                <tr>
+                    <td>${currentEntry.date}</td>
+                    <td class="numeric-data">${currentEntry.total}</td>
+                    <td class="numeric-data">${diffHtml}</td>
+                </tr>
+            `;
+        }
+
+        html += '</tbody></table>';
+        elements.playerHistoryContent.innerHTML = html;
+
+        elements.playerHistoryFilters.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.weeks === filter);
+        });
+    }
+
+    // --- FUNÇÕES AUXILIARES ---
     async function getHistory() {
         try {
             const doc = await historyDocRef.get();
@@ -1040,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             html += `<tr class="${rowClasses.trim()}">
-                        <td data-label="Jogador" class="player-name">${player.jogador}</td>
+                        <td data-label="Jogador" class="player-name" title="Clique para exibir o histórico deste jogador">${player.jogador}</td>
                         <td data-label="Cubos" class="numeric-data">${player.cubo || 0}</td>
                         <td data-label="Tarefas" class="numeric-data">${player.tarefas || 0}</td>
                         <td data-label="Total" class="numeric-data">${player.total || 0}</td>`;
@@ -1074,7 +1265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateCountdown();
         setInterval(updateCountdown, 1000);
         await loadLatestComparison();
-        setAdmin(false); // Garante que o estado inicial não é de admin
+        setAdmin(false);
     }
     
     async function loadLatestComparison() {
