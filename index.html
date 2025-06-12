@@ -881,7 +881,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     elements.tableOutputDiv.addEventListener('click', async (event) => {
-        const toggleTrigger = event.target.closest('.toggle-cell');
+        // CORREÇÃO: Adicionado seletor #toggleColumnButton para corrigir o bug de alternância
+        const toggleTrigger = event.target.closest('.toggle-cell, #toggleColumnButton');
         if (toggleTrigger && currentPlayersData.length > 0) {
             showingDifference = !showingDifference;
             renderTable(currentPlayersData, { isHistoric: false, showDiff: showingDifference });
