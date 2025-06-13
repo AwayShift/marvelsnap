@@ -7,25 +7,46 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐢</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Exo 2', sans-serif;
-            background-color: #0D1117;
-            color: #E6EDF3;
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Krub:wght@400;700&display=swap" rel="stylesheet">
+     <style>
+            :root {
+            --dark-background: #101423;
+            --container-background: #191f36;
+            --text-light: #E6EDF3;
+            --gold-accent: #FFD700;
+            --cyan-accent: #00BFFF;
+            --border-gradient: linear-gradient(145deg, #00BFFF, #8A2BE2);
+            --button-gradient: linear-gradient(90deg, #007BFF, #8A2BE2);
+            --font-main: 'Krub', sans-serif;
+            --font-title: 'Bangers', cursive;
+        }
+        body  {
+            font-family: var(--font-main);
+            background-color: var(--dark-background);
+            background-image: radial-gradient(circle at top right, rgba(138, 43, 226, 0.3), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(0, 191, 255, 0.3), transparent 40%);
+            color: var(--text-light);
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
             box-sizing: border-box;
             margin: 0;
+            min-height: 100vh;
             scrollbar-color: #30363D #0D1117;
             scrollbar-width: thin;
         }
         h2, h3 {
-            color: #f0b90b;
-            font-weight: 700;
+            font-family: var(--font-title);
+            color: var(--gold-accent);
+            font-weight: 400;
             text-align: center;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-size: 2.0em;
+        }
+        h3 {
+            font-size: 2em;
         }
         #app-wrapper {
             width: 100%;
@@ -50,10 +71,13 @@
             z-index: 1000;
             width: 90%;
             max-width: 600px;
-            background-color: #161B22;
+            background-color: var(--container-background);
             padding: 25px;
             border-radius: 8px;
-            border: 1px solid #30363D;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-image: var(--border-gradient) 1;
+            box-shadow: 0 0 25px rgba(138, 43, 226, 0.5);
         }
         .close-modal-button {
             position: absolute;
@@ -68,16 +92,18 @@
             color: white;
         }
         #countdown-container {
-            color: #E6EDF3;
+            color: var(--text-light);
             padding: 10px 20px;
             margin-bottom: 20px;
             font-size: 1.1em;
             text-align: center;
             box-sizing: border-box;
+            font-weight: 700;
         }
         #countdownTimer {
-            color: #00E5FF;
+            color: var(--cyan-accent);
             font-weight: 700;
+            text-shadow: 0 0 8px var(--cyan-accent);
         }
         #toggle-management-container {
             margin-bottom: 10px;
@@ -88,29 +114,25 @@
         #management-wrapper, #result-container {
             box-sizing: border-box;
         }
-        #main-action-container, #actions {
-             background-color: #161B22;
+        #main-action-container, #actions, #result-container {
+            background-color: var(--container-background);
             padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
-            border: 1px solid #30363D;
+            border: 1px solid #4a3272;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
-        #result-container {
-            background-color: #161B22;
-            padding: 25px;
-            border-radius: 8px;
-            border: 1px solid #30363D;
-        }
+
         textarea, select, input[type="password"] {
             width: 100%;
             box-sizing: border-box;
             min-height: 45px;
-            background-color: #0D1117;
-            color: #E6EDF3;
-            border: 1px solid #30363D;
+            background-color: var(--dark-background);
+            color: var(--text-light);
+            border: 1px solid #4a3272;
             border-radius: 6px;
             padding: 10px;
-            font-family: 'Exo 2', sans-serif;
+            font-family: var(--font-main);
             font-size: 14px;
             margin-bottom: 15px;
         }
@@ -119,7 +141,7 @@
         }
         button {
             padding: 12px 20px;
-            background: linear-gradient(90deg, #007BFF, #00BFFF);
+            background: var(--button-gradient);
             color: white;
             border: none;
             border-radius: 6px;
@@ -129,19 +151,22 @@
             display: block;
             width: 100%;
             margin-top: 10px;
-            transition: transform 0.2s ease, background-color 0.3s;
+            transition: transform 0.2s ease, box-shadow 0.3s;
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.6);
         }
         button:hover {
-            transform: scale(1.02);
+            transform: scale(1.03);
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.8);
         }
         button:disabled {
             background: #555;
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
         }
         #toggleManagementButton, #adminLoginButton, #showRankingButton {
-            background: #161B22;
-            border: 1px solid #30363D;
+            background: var(--container-background);
+            border: 1px solid #4a3272;
             width: 45px;
             height: 45px;
             border-radius: 8px;
@@ -153,12 +178,14 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            box-shadow: none;
         }
         #adminLoginButton, #showRankingButton {
             margin-left: 10px;
         }
         #saveButton {
             background: linear-gradient(90deg, #28a745, #20c997);
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.6);
         }
         #showHistoryModalButton {
             position: fixed;
@@ -173,7 +200,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             z-index: 990;
         }
         #historyModal button {
@@ -225,16 +251,19 @@
         th, td {
             padding: 16px 12px;
             text-align: left;
-            border-bottom: 1px solid #21262D;
+            border-bottom: 1px solid #322b4f;
         }
         th {
-            color: #00E5FF;
+            color: var(--cyan-accent);
             font-weight: 700;
             text-align: right;
             white-space: nowrap;
         }
         th:first-child {
             text-align: left;
+            font-family: var(--font-title);
+            font-size: 1.5em;
+            letter-spacing: 1px;
         }
         td.player-name {
             font-weight: 700;
@@ -242,13 +271,13 @@
             transition: color 0.2s;
         }
         td.player-name:hover {
-            color: #f0b90b;
+            color: var(--gold-accent);
         }
         td.numeric-data {
-            color: #00E5FF;
+            color: var(--cyan-accent);
             text-align: right;
             font-weight: 700;
-            text-shadow: 0 0 5px rgba(0, 229, 255, 0.4);
+            text-shadow: 0 0 5px var(--cyan-accent);
         }
         .toggle-cell {
             cursor: pointer;
@@ -276,10 +305,10 @@
             border-right: 2px solid #f0b90b;
         }
         tr.first-high-scorer > td {
-            border-top: 2px solid #f0b90b;
+            border-top: 2px solid var(--gold-accent);
         }
         tr.last-high-scorer > td {
-            border-bottom: 2px solid #f0b90b;
+            border-bottom: 2px solid var(--gold-accent);
         }
         #toggleExample {
             display: block;
@@ -412,17 +441,18 @@
             margin: 10px 0;
             flex-shrink: 0;
         }
-        .filter-btn {
+       .filter-btn {
             width: auto;
             display: inline-block;
             margin: 0;
             padding: 8px 16px;
-            background: #161B22;
-            border: 1px solid #30363D;
+            background: #2a2f4c;
+            border: 1px solid #4a3272;
+            box-shadow: none;
         }
-        .filter-btn.active {
-            background: #007BFF;
-            border-color: #007BFF;
+         .filter-btn.active {
+            background: var(--button-gradient);
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.6);
         }
         #playerHistoryContent, #rankingContent {
             overflow-y: auto;
@@ -447,12 +477,12 @@
             margin: 0;
         }
         .rank-top-3 td {
-            background-color: #2c2a13 !important;
-            color: #f0b90b !important;
+            background-color: rgba(255, 215, 0, 0.1) !important;
+            color: var(--gold-accent) !important;
             font-weight: bold;
         }
         .rank-bottom-3 td {
-            background-color: #3d191d !important;
+            background-color: rgba(220, 53, 69, 0.1) !important;
             color: #ff8e8e !important;
         }
         .inactive-player td {
@@ -471,7 +501,7 @@
             width: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #0D1117;
+            background: var(--dark-background);
         }
         ::-webkit-scrollbar-thumb {
             background: #30363D;
@@ -483,40 +513,22 @@
 
 
         @media screen and (max-width: 768px) {
-            body { padding: 10px; }
-            #main-action-container, #result-container, #actions {
-                width: 100%;
-                padding: 15px;
-            }
-            #toggleColumnButton { display: none; }
-            table { border: 0; }
+            h2, h3 { font-size: 1.8em; }
+            h3 { font-size: 1.5em; }
             table thead { display: none; }
             table tr {
                 display: block;
                 margin-bottom: 15px;
-                border: none;
                 border-radius: 6px;
                 overflow: hidden;
-            }
-            tr.is-high-scorer {
-                border: 2px solid #f0b90b;
-            }
-            tr.special-player {
-                border: 2px solid #0d2f3f;
+                border: 1px solid #4a3272;
             }
             table td {
                 display: block;
                 text-align: right;
                 padding-left: 50%;
                 position: relative;
-                border-bottom: 1px dotted #21262D;
-                background-color: transparent !important;
-            }
-            tr.special-player > td {
-                 background-color: #0d2f3f !important;
-            }
-            tr td[data-label="Total"] {
-                background-color: rgba(255, 255, 255, 0.05) !important;
+                border-bottom: 1px dotted #322b4f;
             }
             table td:last-child { border-bottom: 0; }
             table td::before {
@@ -528,20 +540,15 @@
                 white-space: nowrap;
                 text-align: left;
                 font-weight: bold;
-                color: #f0b90b;
+                color: var(--gold-accent);
             }
             td.player-name {
-                background-color: rgba(0, 229, 255, 0.1) !important;
+                background-color: rgba(0, 191, 255, 0.1) !important;
                 text-align: center;
                 padding-left: 12px;
                 font-size: 1.2em;
-                border-bottom: 1px solid #30363D;
             }
             td.player-name::before { display: none; }
-            td.numeric-data { font-size: 1.1em; }
-            .toggle-cell { cursor: default; }
-            .positive-diff::before { color: #28a745 !important; }
-            .negative-diff::before { color: #dc3545 !important; }
         }
     </style>
 </head>
